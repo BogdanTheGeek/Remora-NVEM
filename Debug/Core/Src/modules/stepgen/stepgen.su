@@ -1,0 +1,9 @@
+gthr-default.h:229:1:int __gthread_key_delete(__gthread_key_t)	16	static
+pin.h:54:21:void Pin::set(bool)	16	static
+stepgen.cpp:33:1:Stepgen::Stepgen(int32_t, int, std::string, std::string, int, volatile int32_t&, volatile int32_t&, volatile uint8_t&)	80	static
+stepgen.cpp:52:6:virtual void Stepgen::update()	16	static
+stepgen.cpp:58:6:virtual void Stepgen::slowUpdate()	16	static
+stepgen.cpp:63:6:void Stepgen::makePulses()	24	static
+stepgen.cpp:107:6:void Stepgen::setEnabled(bool)	16	static
+stepgen.h:12:7:Stepgen::~Stepgen()	16	static
+stepgen.h:12:7:virtual Stepgen::~Stepgen()	16	static
