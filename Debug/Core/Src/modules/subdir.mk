@@ -5,13 +5,16 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../Core/Src/modules/module.cpp 
+../Core/Src/modules/module.cpp \
+../Core/Src/modules/moduleInterrupt.cpp 
 
 OBJS += \
-./Core/Src/modules/module.o 
+./Core/Src/modules/module.o \
+./Core/Src/modules/moduleInterrupt.o 
 
 CPP_DEPS += \
-./Core/Src/modules/module.d 
+./Core/Src/modules/module.d \
+./Core/Src/modules/moduleInterrupt.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -21,7 +24,7 @@ Core/Src/modules/%.o: ../Core/Src/modules/%.cpp Core/Src/modules/subdir.mk
 clean: clean-Core-2f-Src-2f-modules
 
 clean-Core-2f-Src-2f-modules:
-	-$(RM) ./Core/Src/modules/module.d ./Core/Src/modules/module.o
+	-$(RM) ./Core/Src/modules/module.d ./Core/Src/modules/module.o ./Core/Src/modules/moduleInterrupt.d ./Core/Src/modules/moduleInterrupt.o
 
 .PHONY: clean-Core-2f-Src-2f-modules
 

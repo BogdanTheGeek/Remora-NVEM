@@ -1,0 +1,5 @@
+digitalPin.cpp:121:6:virtual void DigitalPin::slowUpdate()	0	static
+digitalPin.h:10:7:DigitalPin::~DigitalPin()	8	static
+digitalPin.h:10:7:virtual DigitalPin::~DigitalPin()	8	static
+digitalPin.cpp:89:6:virtual void DigitalPin::update()	8	static
+digitalPin.cpp:76:1:DigitalPin::DigitalPin(volatile uint32_t&, int, std::string, int, bool, int)	48	static

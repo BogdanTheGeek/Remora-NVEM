@@ -5,19 +5,16 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../Core/Src/thread/interrupt.cpp \
 ../Core/Src/thread/pruThread.cpp \
 ../Core/Src/thread/timer.cpp \
 ../Core/Src/thread/timerInterrupt.cpp 
 
 OBJS += \
-./Core/Src/thread/interrupt.o \
 ./Core/Src/thread/pruThread.o \
 ./Core/Src/thread/timer.o \
 ./Core/Src/thread/timerInterrupt.o 
 
 CPP_DEPS += \
-./Core/Src/thread/interrupt.d \
 ./Core/Src/thread/pruThread.d \
 ./Core/Src/thread/timer.d \
 ./Core/Src/thread/timerInterrupt.d 
@@ -30,7 +27,7 @@ Core/Src/thread/%.o: ../Core/Src/thread/%.cpp Core/Src/thread/subdir.mk
 clean: clean-Core-2f-Src-2f-thread
 
 clean-Core-2f-Src-2f-thread:
-	-$(RM) ./Core/Src/thread/interrupt.d ./Core/Src/thread/interrupt.o ./Core/Src/thread/pruThread.d ./Core/Src/thread/pruThread.o ./Core/Src/thread/timer.d ./Core/Src/thread/timer.o ./Core/Src/thread/timerInterrupt.d ./Core/Src/thread/timerInterrupt.o
+	-$(RM) ./Core/Src/thread/pruThread.d ./Core/Src/thread/pruThread.o ./Core/Src/thread/timer.d ./Core/Src/thread/timer.o ./Core/Src/thread/timerInterrupt.d ./Core/Src/thread/timerInterrupt.o
 
 .PHONY: clean-Core-2f-Src-2f-thread
 

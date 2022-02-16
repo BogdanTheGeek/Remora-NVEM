@@ -22,10 +22,15 @@ RM := rm -rf
 -include Core/Startup/subdir.mk
 -include Core/Src/thread/subdir.mk
 -include Core/Src/modules/stepgen/subdir.mk
+-include Core/Src/modules/nvmpg/subdir.mk
+-include Core/Src/modules/digitalPin/subdir.mk
+-include Core/Src/modules/debug/subdir.mk
 -include Core/Src/modules/blink/subdir.mk
 -include Core/Src/modules/subdir.mk
+-include Core/Src/interrupt/subdir.mk
 -include Core/Src/drivers/pin/subdir.mk
 -include Core/Src/subdir.mk
+-include Core/Inc/subdir.mk
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -89,8 +94,8 @@ all: main-build
 main-build: Remora-NVEM.elf secondary-outputs
 
 # Tool invocations
-Remora-NVEM.elf: $(OBJS) $(USER_OBJS) C:\Users\tanya\STM32CubeIDE\workspace_1.8.0\Remora-NVEM\STM32F207VCTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-g++ -o "Remora-NVEM.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\tanya\STM32CubeIDE\workspace_1.8.0\Remora-NVEM\STM32F207VCTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Remora-NVEM.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+Remora-NVEM.elf: $(OBJS) $(USER_OBJS) D:\Local\ Repositories\Remora-NVEM\STM32F207VCTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-g++ -o "Remora-NVEM.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\Local Repositories\Remora-NVEM\STM32F207VCTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Remora-NVEM.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

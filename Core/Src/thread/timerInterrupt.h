@@ -3,7 +3,7 @@
 
 // Derived class for timer interrupts
 
-class pruTimer; // forward declatation
+class pruTimer; // forward declaration
 
 class TimerInterrupt : public Interrupt
 {

@@ -6,3 +6,4 @@ module.cpp:25:6:void Module::runModule()	16	static
 module.cpp:39:6:virtual void Module::update()	16	static
 module.cpp:40:6:virtual void Module::slowUpdate()	16	static
 module.cpp:41:6:virtual void Module::configure()	16	static
+module.cpp:42:6:virtual void Module::handleInterrupt()	16	static

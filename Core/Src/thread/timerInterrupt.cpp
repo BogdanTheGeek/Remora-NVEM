@@ -1,4 +1,4 @@
-#include "interrupt.h"
+#include "../interrupt/interrupt.h"
 #include "timerInterrupt.h"
 #include "timer.h"
 

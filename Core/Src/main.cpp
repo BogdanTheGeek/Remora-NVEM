@@ -36,16 +36,21 @@
 // drivers
 #include "drivers/pin/pin.h"
 
+// interrupts
+#include "interrupt/irqHandlers.h"
+#include "interrupt/interrupt.h"
+
 // threads
-#include "thread/irqHandlers.h"
-#include "thread/interrupt.h"
 #include "thread/pruThread.h"
 #include "thread/createThreads.h"
 
 // modules
 #include "modules/module.h"
 #include "modules/blink/blink.h"
+#include "modules/debug/debug.h"
 #include "modules/stepgen/stepgen.h"
+#include "modules/digitalPin/digitalPin.h"
+#include "modules/nvmpg/nvmpg.h"
 
 /* USER CODE END Includes */
 
@@ -64,7 +69,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -73,11 +77,11 @@ UART_HandleTypeDef huart2;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 
 void udpServer_init(void);
-void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
+void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
+void udp_mpg_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
 
 /* USER CODE BEGIN PFP */
 
@@ -127,6 +131,9 @@ rxData_t rxBuffer;				// temporary RX buffer
 volatile rxData_t rxData;
 volatile txData_t txData;
 
+mpgData_t mpgData;
+Module* MPG;
+
 // pointers to data
 volatile rxData_t*  ptrRxData = &rxData;
 volatile txData_t*  ptrTxData = &txData;
@@ -137,21 +144,28 @@ volatile int32_t* ptrJointFeedback[JOINTS];
 volatile uint8_t* ptrJointEnable;
 volatile float*   ptrSetPoint[VARIABLES];
 volatile float*   ptrProcessVariable[VARIABLES];
-volatile uint16_t* ptrInputs;
+volatile uint32_t* ptrInputs;
+volatile uint16_t* ptrNVMPGInputs;
 volatile uint16_t* ptrOutputs;
+
+volatile mpgData_t* ptrMpgData = &mpgData;
+
 
 void loadModules()
 {
 	int joint;
+    ptrInputs = &txData.inputs;
+    ptrNVMPGInputs = &txData.NVMPGinputs;
 
-	//printf("\nCreate 1 second blink module to test SERVO thread");
-    //Module* blinkServo = new Blink("PC_10", PRU_SERVOFREQ, 1);
-    //servoThread->registerModule(blinkServo);
+	printf("\nCreate 1 second blink module to test SERVO thread");
+    Module* blinkServo = new Blink("PB_8", PRU_SERVOFREQ, 1);
+    servoThread->registerModule(blinkServo);
 
     //printf("\nCreate 1 second blink module to test BASE thread");
     //Module* blinkBase = new Blink("PC_12", PRU_BASEFREQ, 1);
     //baseThread->registerModule(blinkBase);
 
+	// STEP GENERATORS
 
 	// Step generator for Joint 0 [X axis]
 	joint = 0;
@@ -188,20 +202,20 @@ void loadModules()
     Module* joint2 = new Stepgen(PRU_BASEFREQ, joint, "PE_11", "PE_10", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
     baseThread->registerModule(joint2);
 
-/*
+
 	// Step generator for Joint 3 [A axis]
 	joint = 3;
 	printf("\nCreate step generator for Joint %d\n", joint);
 
 	ptrJointFreqCmd[joint] = &rxData.jointFreqCmd[joint];
-    ptrJointFeedback[joint] = &txData.jointFeedback[joint];
-    ptrJointEnable = &rxData.jointEnable;
+	ptrJointFeedback[joint] = &txData.jointFeedback[joint];
+	ptrJointEnable = &rxData.jointEnable;
 
-    Module* joint3 = new Stepgen(PRU_BASEFREQ, joint, "PE_9", "PE_8", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
-    baseThread->registerModule(joint3);
+	Module* joint3 = new Stepgen(PRU_BASEFREQ, joint, "PE_9", "PE_8", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
+	baseThread->registerModule(joint3);
 
 
-	// Step generator for Joint 4 [B axis]
+ 	// Step generator for Joint 4 [B axis]
 	joint = 4;
 	printf("\nCreate step generator for Joint %d\n", joint);
 
@@ -221,9 +235,110 @@ void loadModules()
     ptrJointFeedback[joint] = &txData.jointFeedback[joint];
     ptrJointEnable = &rxData.jointEnable;
 
-    Module* joint5 = new Stepgen(PRU_BASEFREQ, joint, "PA_6", "PA_5", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
+    //Module* joint5 = new Stepgen(PRU_BASEFREQ, joint, "PA_6", "PA_5", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
+    Module* joint5 = new Stepgen(PRU_BASEFREQ, joint, "PE_9", "PE_8", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
     baseThread->registerModule(joint5);
-*/
+
+
+    // INPUTS
+    Module* STOP = new DigitalPin(*ptrInputs, 0, "PD_8", 0, true, NONE);
+    servoThread->registerModule(STOP);
+
+    Module* PROBE = new DigitalPin(*ptrInputs, 0, "PD_9", 1, true, NONE);
+    servoThread->registerModule(PROBE);
+
+    Module* INP3 = new DigitalPin(*ptrInputs, 0, "PD_10", 2, true, NONE);
+    servoThread->registerModule(INP3);
+
+    Module* INP4 = new DigitalPin(*ptrInputs, 0, "PD_11", 3, true, NONE);
+    servoThread->registerModule(INP4);
+
+    Module* INP5 = new DigitalPin(*ptrInputs, 0, "PD_14", 4, true, NONE);
+    servoThread->registerModule(INP5);
+
+    Module* INP6 = new DigitalPin(*ptrInputs, 0, "PD_15", 5, true, NONE);
+    servoThread->registerModule(INP6);
+
+    Module* INP7 = new DigitalPin(*ptrInputs, 0, "PC_6", 6, true, NONE);
+    servoThread->registerModule(INP7);
+
+    Module* INP8 = new DigitalPin(*ptrInputs, 0, "PC_7", 7, true, NONE);
+    servoThread->registerModule(INP8);
+
+    Module* INP9 = new DigitalPin(*ptrInputs, 0, "PC_8", 8, true, NONE);
+    servoThread->registerModule(INP9);
+
+    Module* INP10 = new DigitalPin(*ptrInputs, 0, "PC_9", 9, true, NONE);
+    servoThread->registerModule(INP10);
+
+    Module* INP11 = new DigitalPin(*ptrInputs, 0, "PA_11", 10, true, NONE);
+    servoThread->registerModule(INP11);
+
+    Module* INP12 = new DigitalPin(*ptrInputs, 0, "PA_12", 11, true, NONE);
+    servoThread->registerModule(INP12);
+
+    Module* SRO = new DigitalPin(*ptrInputs, 0, "PB_14", 12, true, NONE);
+    servoThread->registerModule(SRO);
+
+    Module* SJR = new DigitalPin(*ptrInputs, 0, "PB_15", 13, true, NONE);
+    servoThread->registerModule(SJR);
+
+    Module* x100 = new DigitalPin(*ptrInputs, 0, "PA_15", 14, true, NONE);
+    servoThread->registerModule(x100);
+
+    //Module* x10 = new DigitalPin(*ptrInputs, 0, "PC_10", 15, true, NONE);
+    //servoThread->registerModule(x10);
+
+    Module* x1 = new DigitalPin(*ptrInputs, 0, "PC_11", 16, true, NONE);
+    servoThread->registerModule(x1);
+
+    //Module* ESTOP = new DigitalPin(*ptrInputs, 0, "PC_12", 17, true, NONE);
+    //servoThread->registerModule(ESTOP);
+
+    Module* Xin = new DigitalPin(*ptrInputs, 0, "PD_7", 18, true, NONE);
+    servoThread->registerModule(Xin);
+
+    Module* Yin = new DigitalPin(*ptrInputs, 0, "PD_4", 19, true, NONE);
+    servoThread->registerModule(Yin);
+
+    Module* Zin = new DigitalPin(*ptrInputs, 0, "PD_3", 20, true, NONE);
+    servoThread->registerModule(Zin);
+
+    Module* Ain = new DigitalPin(*ptrInputs, 0, "PD_2", 21, true, NONE);
+    servoThread->registerModule(Ain);
+
+    Module* Bin = new DigitalPin(*ptrInputs, 0, "PD_1", 22, true, NONE);
+    servoThread->registerModule(Bin);
+
+    Module* Cin = new DigitalPin(*ptrInputs, 0, "PD_0", 23, true, NONE);
+    servoThread->registerModule(Cin);
+
+    Module* WHA = new DigitalPin(*ptrInputs, 0, "PB_7", 24, false, NONE);
+    servoThread->registerModule(WHA);
+
+    Module* WHB = new DigitalPin(*ptrInputs, 0, "PB_6", 25, false, NONE);
+    servoThread->registerModule(WHB);
+
+	MPG = new NVMPG(*ptrMpgData, *ptrNVMPGInputs);
+	servoThread->registerModule(MPG);
+}
+
+void debugThreadHigh()
+{
+    Module* debugOnB = new Debug("PC_10", 1);
+    baseThread->registerModule(debugOnB);
+
+    Module* debugOnS = new Debug("PC_12", 1);
+    servoThread->registerModule(debugOnS);
+}
+
+void debugThreadLow()
+{
+    Module* debugOffB = new Debug("PC_10", 0);
+    baseThread->registerModule(debugOffB);
+
+    Module* debugOffS = new Debug("PC_12", 0);
+    servoThread->registerModule(debugOffS);
 }
 
 /* USER CODE END 0 */
@@ -256,7 +371,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_LWIP_Init();
-  MX_USART1_UART_Init();
   MX_USART2_UART_Init();
 
   /* USER CODE BEGIN 2 */
@@ -287,9 +401,9 @@ int main(void)
 	              prevState = currentState;
 
 	              createThreads();
-	              //debugThreadHigh();
+	              debugThreadHigh();
 	              loadModules();
-	              //debugThreadLow();
+	              debugThreadLow();
 	              udpServer_init();
 
 	              currentState = ST_START;
@@ -500,38 +614,7 @@ void SystemClock_Config(void)
   }
 }
 
-/**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
 
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
-
-}
 
 /**
   * @brief USART2 Initialization Function
@@ -602,10 +685,11 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
+
 void udpServer_init(void)
 {
 	// UDP Control Block structure
-   struct udp_pcb *upcb;
+   struct udp_pcb *upcb, *upcb2;
    err_t err;
 
    /* 1. Create a new UDP control block  */
@@ -621,15 +705,30 @@ void udpServer_init(void)
    /* 3. Set a receive callback for the upcb */
    if(err == ERR_OK)
    {
-	   udp_recv(upcb, udp_receive_callback, NULL);
+	   udp_recv(upcb, udp_data_callback, NULL);
    }
    else
    {
 	   udp_remove(upcb);
    }
+
+
+   // Try making a second UDP control block...?
+
+   upcb2 = udp_new();
+   err = udp_bind(upcb2, &myIPADDR, 27182);  // 27182 is the server UDP port for NVMPG
+
+   if(err == ERR_OK)
+   {
+	   udp_recv(upcb2, udp_mpg_callback, NULL);
+   }
+   else
+   {
+	   udp_remove(upcb2);
+   }
 }
 
-void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
+void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
 	int txlen;
 	struct pbuf *txBuf;
@@ -675,4 +774,19 @@ void udp_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const
 
 	// Free the p buffer
 	pbuf_free(p);
+}
+
+
+void udp_mpg_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
+{
+	// copy the UDP payload into the nvmpg structure
+	memcpy(&mpgData.payload, p->payload, p->len);
+
+	// Free the p buffer
+	pbuf_free(p);
+
+	if (mpgData.header == PRU_NVMPG)
+	{
+		MPG->configure();
+	}
 }
