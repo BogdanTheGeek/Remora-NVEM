@@ -24,6 +24,8 @@ Core/Src/main.o: ../Core/Src/main.cpp ../Core/Inc/main.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_flash_ex.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_pwr.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_pwr_ex.h \
+ ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_tim.h \
+ ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_tim_ex.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_uart.h \
  ../LWIP/App/lwip.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/opt.h \
@@ -72,8 +74,14 @@ Core/Src/main.o: ../Core/Src/main.cpp ../Core/Inc/main.h \
  ../Core/Src/modules/module.h ../Core/Src/modules/blink/blink.h \
  ../Core/Src/modules/blink/../module.h \
  ../Core/Src/modules/blink/../../drivers/pin/pin.h \
- ../Core/Src/modules/debug/debug.h ../Core/Src/modules/debug/../module.h \
+ ../Core/Src/modules/comms/RemoraComms.h \
+ ../Middlewares/Third_Party/LwIP/src/include/lwip/api.h \
+ ../Core/Src/modules/comms/../module.h ../Core/Src/modules/debug/debug.h \
+ ../Core/Src/modules/debug/../module.h \
  ../Core/Src/modules/debug/../../drivers/pin/pin.h \
+ ../Core/Src/modules/pwm/spindlePWM.h ../Core/Src/modules/pwm/../module.h \
+ ../Core/Src/modules/pwm/softPWM.h \
+ ../Core/Src/modules/pwm/../../drivers/pin/pin.h \
  ../Core/Src/modules/stepgen/stepgen.h \
  ../Core/Src/modules/stepgen/../module.h \
  ../Core/Src/modules/stepgen/../../drivers/pin/pin.h \
@@ -136,6 +144,10 @@ Core/Src/main.o: ../Core/Src/main.cpp ../Core/Inc/main.h \
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_pwr.h:
 
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_pwr_ex.h:
+
+../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_tim.h:
+
+../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_tim_ex.h:
 
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_uart.h:
 
@@ -247,11 +259,25 @@ Core/Src/main.o: ../Core/Src/main.cpp ../Core/Inc/main.h \
 
 ../Core/Src/modules/blink/../../drivers/pin/pin.h:
 
+../Core/Src/modules/comms/RemoraComms.h:
+
+../Middlewares/Third_Party/LwIP/src/include/lwip/api.h:
+
+../Core/Src/modules/comms/../module.h:
+
 ../Core/Src/modules/debug/debug.h:
 
 ../Core/Src/modules/debug/../module.h:
 
 ../Core/Src/modules/debug/../../drivers/pin/pin.h:
+
+../Core/Src/modules/pwm/spindlePWM.h:
+
+../Core/Src/modules/pwm/../module.h:
+
+../Core/Src/modules/pwm/softPWM.h:
+
+../Core/Src/modules/pwm/../../drivers/pin/pin.h:
 
 ../Core/Src/modules/stepgen/stepgen.h:
 

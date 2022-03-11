@@ -47,7 +47,10 @@
 // modules
 #include "modules/module.h"
 #include "modules/blink/blink.h"
+#include "modules/comms/RemoraComms.h"
 #include "modules/debug/debug.h"
+#include "modules/pwm/spindlePWM.h"
+#include "modules/pwm/softPWM.h"
 #include "modules/stepgen/stepgen.h"
 #include "modules/digitalPin/digitalPin.h"
 #include "modules/nvmpg/nvmpg.h"
@@ -70,6 +73,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart2;
+TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
 
@@ -131,6 +135,8 @@ rxData_t rxBuffer;				// temporary RX buffer
 volatile rxData_t rxData;
 volatile txData_t txData;
 
+RemoraComms* comms;
+
 mpgData_t mpgData;
 Module* MPG;
 
@@ -145,8 +151,8 @@ volatile uint8_t* ptrJointEnable;
 volatile float*   ptrSetPoint[VARIABLES];
 volatile float*   ptrProcessVariable[VARIABLES];
 volatile uint32_t* ptrInputs;
+volatile uint32_t* ptrOutputs;
 volatile uint16_t* ptrNVMPGInputs;
-volatile uint16_t* ptrOutputs;
 
 volatile mpgData_t* ptrMpgData = &mpgData;
 
@@ -155,15 +161,24 @@ void loadModules()
 {
 	int joint;
     ptrInputs = &txData.inputs;
+    ptrOutputs = &rxData.outputs;
     ptrNVMPGInputs = &txData.NVMPGinputs;
 
-	printf("\nCreate 1 second blink module to test SERVO thread");
-    Module* blinkServo = new Blink("PB_8", PRU_SERVOFREQ, 1);
-    servoThread->registerModule(blinkServo);
+    // Ethernet communication monitoring
+	comms = new RemoraComms();
+	servoThread->registerModule(comms);
+
+
+	// -------------------- TESTING ---------------------------------
+	//printf("\nCreate 1 second blink module to test SERVO thread");
+    //Module* blinkServo = new Blink("PC_2", PRU_SERVOFREQ, 1); //"PB_8"
+    //servoThread->registerModule(blinkServo);
 
     //printf("\nCreate 1 second blink module to test BASE thread");
-    //Module* blinkBase = new Blink("PC_12", PRU_BASEFREQ, 1);
+    //Module* blinkBase = new Blink("PC_3", PRU_BASEFREQ, 1); //"PC_12"
     //baseThread->registerModule(blinkBase);
+	// -------------------- TESTING ---------------------------------
+
 
 	// STEP GENERATORS
 
@@ -177,6 +192,7 @@ void loadModules()
 
     Module* joint0 = new Stepgen(PRU_BASEFREQ, joint, "PE_15", "PE_14", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
     baseThread->registerModule(joint0);
+    baseThread->registerModulePost(joint0);
 
 
 	// Step generator for Joint 1 [Y axis]
@@ -189,6 +205,7 @@ void loadModules()
 
     Module* joint1 = new Stepgen(PRU_BASEFREQ, joint, "PE_13", "PE_12", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
     baseThread->registerModule(joint1);
+    baseThread->registerModulePost(joint1);
 
 
 	// Step generator for Joint 2 [Z axis]
@@ -201,6 +218,7 @@ void loadModules()
 
     Module* joint2 = new Stepgen(PRU_BASEFREQ, joint, "PE_11", "PE_10", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
     baseThread->registerModule(joint2);
+    baseThread->registerModulePost(joint2);
 
 
 	// Step generator for Joint 3 [A axis]
@@ -213,6 +231,7 @@ void loadModules()
 
 	Module* joint3 = new Stepgen(PRU_BASEFREQ, joint, "PE_9", "PE_8", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
 	baseThread->registerModule(joint3);
+	baseThread->registerModulePost(joint3);
 
 
  	// Step generator for Joint 4 [B axis]
@@ -225,6 +244,7 @@ void loadModules()
 
     Module* joint4 = new Stepgen(PRU_BASEFREQ, joint, "PE_7", "PA_8", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
     baseThread->registerModule(joint4);
+    baseThread->registerModulePost(joint4);
 
 
 	// Step generator for Joint 5 [C axis]
@@ -238,6 +258,7 @@ void loadModules()
     //Module* joint5 = new Stepgen(PRU_BASEFREQ, joint, "PA_6", "PA_5", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
     Module* joint5 = new Stepgen(PRU_BASEFREQ, joint, "PE_9", "PE_8", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
     baseThread->registerModule(joint5);
+    baseThread->registerModulePost(joint5);
 
 
     // INPUTS
@@ -286,14 +307,14 @@ void loadModules()
     Module* x100 = new DigitalPin(*ptrInputs, 0, "PA_15", 14, true, NONE);
     servoThread->registerModule(x100);
 
-    //Module* x10 = new DigitalPin(*ptrInputs, 0, "PC_10", 15, true, NONE);
-    //servoThread->registerModule(x10);
+    Module* x10 = new DigitalPin(*ptrInputs, 0, "PC_10", 15, true, NONE);
+    servoThread->registerModule(x10);
 
     Module* x1 = new DigitalPin(*ptrInputs, 0, "PC_11", 16, true, NONE);
     servoThread->registerModule(x1);
 
-    //Module* ESTOP = new DigitalPin(*ptrInputs, 0, "PC_12", 17, true, NONE);
-    //servoThread->registerModule(ESTOP);
+    Module* ESTOP = new DigitalPin(*ptrInputs, 0, "PC_12", 17, true, NONE);
+    servoThread->registerModule(ESTOP);
 
     Module* Xin = new DigitalPin(*ptrInputs, 0, "PD_7", 18, true, NONE);
     servoThread->registerModule(Xin);
@@ -319,6 +340,51 @@ void loadModules()
     Module* WHB = new DigitalPin(*ptrInputs, 0, "PB_6", 25, false, NONE);
     servoThread->registerModule(WHB);
 
+    Module* INDEX = new DigitalPin(*ptrInputs, 0, "PC_15", 25, false, NONE);
+    servoThread->registerModule(INDEX);
+
+
+    // OUTPUTS
+    Module* OUT1 = new DigitalPin(*ptrOutputs, 1, "PC_3", 0, false, NONE);
+    servoThread->registerModule(OUT1);
+
+    Module* OUT2 = new DigitalPin(*ptrOutputs, 1, "PC_2", 1, false, NONE);
+    servoThread->registerModule(OUT2);
+
+    Module* OUT3 = new DigitalPin(*ptrOutputs, 1, "PB_8", 3, false, NONE);
+    servoThread->registerModule(OUT3);
+
+    Module* OUT4 = new DigitalPin(*ptrOutputs, 1, "PB_9", 4, false, NONE);
+    servoThread->registerModule(OUT4);
+
+    Module* OUT5 = new DigitalPin(*ptrOutputs, 1, "PE_0", 5, false, NONE);
+    servoThread->registerModule(OUT5);
+
+    Module* OUT6 = new DigitalPin(*ptrOutputs, 1, "PE_1", 6, false, NONE);
+    servoThread->registerModule(OUT6);
+
+    Module* OUT7 = new DigitalPin(*ptrOutputs, 1, "PE_2", 7, false, NONE);
+    servoThread->registerModule(OUT7);
+
+    Module* OUT8 = new DigitalPin(*ptrOutputs, 1, "PE_3", 8, false, NONE);
+    servoThread->registerModule(OUT8);
+
+    Module* OUT9 = new DigitalPin(*ptrOutputs, 1, "PC_13", 9, false, NONE);
+    servoThread->registerModule(OUT9);
+
+    Module* OUT10 = new DigitalPin(*ptrOutputs, 1, "PC_14", 10, false, NONE);
+    servoThread->registerModule(OUT10);
+
+    // SPINDLE
+    ptrSetPoint[0] = &rxData.setPoint[0];
+    Module* spindle = new SpindlePWM(*ptrSetPoint[0]);
+    servoThread->registerModule(spindle);
+
+    //Module* spindle = new SoftPWM(*ptrSetPoint[0], "PA_0");
+    //baseThread->registerModule(spindle);
+
+
+    // MANUAL PULSE GENERATOR
 	MPG = new NVMPG(*ptrMpgData, *ptrNVMPGInputs);
 	servoThread->registerModule(MPG);
 }
@@ -401,9 +467,9 @@ int main(void)
 	              prevState = currentState;
 
 	              createThreads();
-	              debugThreadHigh();
+	              //debugThreadHigh();
 	              loadModules();
-	              debugThreadLow();
+	              //debugThreadLow();
 	              udpServer_init();
 
 	              currentState = ST_START;
@@ -427,21 +493,9 @@ int main(void)
 	                  servoThread->startThread();
 
 	                  threadsRunning = true;
-
-	                  // wait for threads to read IO before testing for PRUreset
-	                  HAL_Delay(1000);
 	              }
 
-	              if (PRUreset)
-	              {
-	                  // RPi outputs default is high until configured when LinuxCNC spiPRU component is started, PRUreset pin will be high
-	                  // stay in start state until LinuxCNC is started
-	                  currentState = ST_START;
-	              }
-	              else
-	              {
-	                  currentState = ST_IDLE;
-	              }
+	              currentState = ST_IDLE;
 
 	              break;
 
@@ -454,28 +508,11 @@ int main(void)
 	              }
 	              prevState = currentState;
 
-	              /*
-	              // check to see if there there has been SPI errors
-	              if (comms.getError())
-	              {
-	                  printf("Communication data error\n");
-	                  comms.setError(false);
-	              }
-
-	              //wait for SPI data before changing to running state
-	              if (comms.getStatus())
+	              //wait for data before changing to running state
+	              if (comms->getStatus())
 	              {
 	                  currentState = ST_RUNNING;
 	              }
-
-	              if (PRUreset)
-	              {
-	                  currentState = ST_WDRESET;
-	              }
-	              */
-
-	              // ethernet testing - jump straight into RUNNING
-	              currentState = ST_RUNNING;
 
 	              break;
 
@@ -487,39 +524,10 @@ int main(void)
 	              }
 	              prevState = currentState;
 
-	              /*
-	              // check to see if there there has been SPI errors
-	              if (comms.getError())
+	              if (comms->getStatus() == false)
 	              {
-	                  printf("Communication data error\n");
-	                  comms.setError(false);
+	            	  currentState = ST_RESET;
 	              }
-
-	              if (comms.getStatus())
-	              {
-	                  // SPI data received by DMA
-	                  resetCnt = 0;
-	                  comms.setStatus(false);
-	              }
-	              else
-	              {
-	                  // no data received by DMA
-	                  resetCnt++;
-	              }
-
-	              if (resetCnt > SPI_ERR_MAX)
-	              {
-	                  // reset threshold reached, reset the PRU
-	                  printf("   Communication data error limit reached, resetting\n");
-	                  resetCnt = 0;
-	                  currentState = ST_RESET;
-	              }
-
-	              if (PRUreset)
-	              {
-	                  currentState = ST_WDRESET;
-	              }
-	              */
 
 	              break;
 
@@ -567,8 +575,7 @@ int main(void)
 	              break;
 	  }
 
-
-
+	  // do Ethernet tasks
 	  ethernetif_input(&gnetif);
 	  sys_check_timeouts();
   }
@@ -648,6 +655,7 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE END USART2_Init 2 */
 
 }
+
 
 /* USER CODE BEGIN 4 */
 
@@ -730,7 +738,7 @@ void udpServer_init(void)
 
 void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
-	int txlen;
+	int txlen = 0;
 	struct pbuf *txBuf;
 
 	// copy the UDP payload into the rxData structure
@@ -740,11 +748,13 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
 	{
 		txData.header = PRU_DATA;
 		txlen = BUFFER_SIZE;
+		comms->dataReceived();
 	}
 	else if (rxBuffer.header == PRU_WRITE)
 	{
 		txData.header = PRU_ACKNOWLEDGE;
 		txlen = sizeof(txData.header);
+		comms->dataReceived();
 
 		// then move the data
 		for (int i = 0; i < BUFFER_SIZE; i++)
@@ -787,6 +797,7 @@ void udp_mpg_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_
 
 	if (mpgData.header == PRU_NVMPG)
 	{
+		// use a standard module interface to trigger the update of the MPG
 		MPG->configure();
 	}
 }

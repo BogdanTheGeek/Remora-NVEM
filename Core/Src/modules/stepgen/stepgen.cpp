@@ -55,6 +55,11 @@ void Stepgen::update()
 	this->makePulses();
 }
 
+void Stepgen::updatePost()
+{
+	this->stopPulses();
+}
+
 void Stepgen::slowUpdate()
 {
 	return;
@@ -90,19 +95,20 @@ void Stepgen::makePulses()
 			this->directionPin->set(this->isForward);             		// Set direction pin
 			this->stepPin->set(true);										// Raise step pin - A4988 / DRV8825 stepper drivers only need 200ns setup time
 			*(this->ptrFeedback) = this->DDSaccumulator;                     // Update position feedback via pointer to the data receiver
+			this->isStepping = true;
 		}
-		else
-		{
-			this->stepPin->set(false);										// Reset step pin
-		}
-
 	}
-	else
-	{
 
-	}
 
 }
+
+
+void Stepgen::stopPulses()
+{
+	this->stepPin->set(false);	// Reset step pin
+	this->isStepping = false;
+}
+
 
 void Stepgen::setEnabled(bool state)
 {

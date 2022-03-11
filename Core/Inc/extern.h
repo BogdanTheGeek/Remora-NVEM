@@ -30,7 +30,7 @@ extern volatile uint8_t*   ptrJointEnable;
 extern volatile float*     ptrSetPoint[VARIABLES];
 extern volatile float*     ptrProcessVariable[VARIABLES];
 extern volatile uint32_t*   ptrInputs;
-extern volatile uint16_t*   ptrOutputs;
+extern volatile uint32_t*   ptrOutputs;
 
 
 #endif

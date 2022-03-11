@@ -35,10 +35,12 @@ Core/Src/drivers/pin \
 Core/Src/interrupt \
 Core/Src \
 Core/Src/modules/blink \
+Core/Src/modules/comms \
 Core/Src/modules/debug \
 Core/Src/modules/digitalPin \
 Core/Src/modules \
 Core/Src/modules/nvmpg \
+Core/Src/modules/pwm \
 Core/Src/modules/stepgen \
 Core/Src/thread \
 Core/Startup \

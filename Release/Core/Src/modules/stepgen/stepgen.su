@@ -1,7 +1,9 @@
-stepgen.cpp:58:6:virtual void Stepgen::slowUpdate()	0	static
+stepgen.cpp:63:6:virtual void Stepgen::slowUpdate()	0	static
 stepgen.h:12:7:Stepgen::~Stepgen()	8	static
 stepgen.h:12:7:virtual Stepgen::~Stepgen()	8	static
 stepgen.cpp:33:1:Stepgen::Stepgen(int32_t, int, std::string, std::string, int, volatile int32_t&, volatile int32_t&, volatile uint8_t&)	48	static
-stepgen.cpp:63:6:void Stepgen::makePulses()	16	static
+stepgen.cpp:68:6:void Stepgen::makePulses()	8	static
 stepgen.cpp:52:6:virtual void Stepgen::update()	0	static
-stepgen.cpp:107:6:void Stepgen::setEnabled(bool)	0	static
+stepgen.cpp:106:6:void Stepgen::stopPulses()	8	static
+stepgen.cpp:58:6:virtual void Stepgen::updatePost()	0	static
+stepgen.cpp:113:6:void Stepgen::setEnabled(bool)	0	static

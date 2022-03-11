@@ -57,7 +57,9 @@
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
-/**
+
+
+                    /**
   * Initializes the Global MSP.
   */
 void HAL_MspInit(void)
@@ -75,6 +77,7 @@ void HAL_MspInit(void)
 
   /* USER CODE END MspInit 1 */
 }
+
 
 /**
 * @brief UART MSP Initialization

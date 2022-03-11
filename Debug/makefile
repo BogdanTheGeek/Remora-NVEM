@@ -22,9 +22,11 @@ RM := rm -rf
 -include Core/Startup/subdir.mk
 -include Core/Src/thread/subdir.mk
 -include Core/Src/modules/stepgen/subdir.mk
+-include Core/Src/modules/pwm/subdir.mk
 -include Core/Src/modules/nvmpg/subdir.mk
 -include Core/Src/modules/digitalPin/subdir.mk
 -include Core/Src/modules/debug/subdir.mk
+-include Core/Src/modules/comms/subdir.mk
 -include Core/Src/modules/blink/subdir.mk
 -include Core/Src/modules/subdir.mk
 -include Core/Src/interrupt/subdir.mk

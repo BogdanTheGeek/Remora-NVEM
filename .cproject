@@ -113,7 +113,7 @@
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.777018811.476020329" name="extern.h" rcbsApplicability="disable" resourcePath="Core/Inc/extern.h" toolsToInvoke=""/>
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.777018811.865010446" name="udpServerRAW.h" rcbsApplicability="disable" resourcePath="Core/Inc/udpServerRAW.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="Src/main.c|Src/modules/comms/RemoraComms.h|Src/modules/comms/RemoraComms.cpp|Src/udpServerRAW.cpp|Inc/udpServerRAW.h" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry excluding="Src/main.c|Src/udpServerRAW.cpp|Inc/udpServerRAW.h" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="LWIP"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
@@ -227,7 +227,7 @@
 					</folderInfo>
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.release.1258383348.1954297296" name="RemoraComms.h" rcbsApplicability="disable" resourcePath="Core/Src/modules/comms/RemoraComms.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="Src/udpServerRAW.cpp|Src/modules/comms/RemoraComms.h|Src/modules/comms/RemoraComms.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry excluding="Src/udpServerRAW.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="LWIP"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
