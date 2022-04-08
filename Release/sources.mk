@@ -31,8 +31,8 @@ CPP_DEPS :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 Core/Src/drivers/pin \
-Core/Src/interrupt \
 Core/Src \
+Core/Src/interrupt \
 Core/Src/modules/blink \
 Core/Src/modules/comms \
 Core/Src/modules/debug \

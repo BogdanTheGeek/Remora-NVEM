@@ -32,8 +32,8 @@ CPP_DEPS :=
 SUBDIRS := \
 Core/Inc \
 Core/Src/drivers/pin \
-Core/Src/interrupt \
 Core/Src \
+Core/Src/interrupt \
 Core/Src/modules/blink \
 Core/Src/modules/comms \
 Core/Src/modules/debug \

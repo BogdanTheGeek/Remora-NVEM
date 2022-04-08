@@ -32,6 +32,11 @@
 //#define RXD0                P0_3
 //#define PC_BAUD             115200          // UART baudrate
 
+// Location for storage of JSON config file in Flash
+#define JSON_UPLOAD_ADDRESS				0x080D0000
+#define JSON_STORAGE_ADDRESS 			0x080E0000
+#define USER_FLASH_LAST_PAGE_ADDRESS  	0x080E0000
+#define USER_FLASH_END_ADDRESS        	0x080FFFFF
 
 
 #endif

@@ -23,15 +23,24 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <inttypes.h>
 #include <cstring>
 
 #include "configuration.h"
 #include "remora.h"
 
+// Flash storage
+#include "flash_if.h"
+
 // Ethernet
 #include "lwip/pbuf.h"
 #include "lwip/udp.h"
 #include "lwip/tcp.h"
+#include "tftpserver.h"
+
+// libraries
+#include <sys/errno.h>
+#include "lib/ArduinoJson6/ArduinoJson.h"
 
 // drivers
 #include "drivers/pin/pin.h"
@@ -59,11 +68,13 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+UART_HandleTypeDef huart2;
+TIM_HandleTypeDef htim2;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -72,9 +83,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-UART_HandleTypeDef huart2;
-TIM_HandleTypeDef htim2;
-
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -156,6 +164,96 @@ volatile uint16_t* ptrNVMPGInputs;
 
 volatile mpgData_t* ptrMpgData = &mpgData;
 
+
+// Json config file stuff
+
+// 512 bytes of metadata in front of actual JSON file
+typedef struct
+{
+  uint32_t crc32;   // crc32 of JSON
+  uint32_t length;  // length in bytes
+  uint8_t padding[504];
+} metadata_t;
+#define METADATA_LEN    512
+
+volatile bool newJson;
+uint32_t crc32;
+FILE *jsonFile;
+string strJson;
+DynamicJsonDocument doc(JSON_BUFF_SIZE);
+JsonObject thread;
+JsonObject module;
+
+uint8_t checkJson()
+{
+	metadata_t* meta = (metadata_t*)JSON_UPLOAD_ADDRESS;
+	uint32_t* json = (uint32_t*)(JSON_UPLOAD_ADDRESS + METADATA_LEN);
+
+	// Check length is reasonable
+	//printf("Config length = %d\n", meta->length);
+	if (meta->length > (USER_FLASH_END_ADDRESS - JSON_UPLOAD_ADDRESS))
+	{
+		newJson = false;
+		printf("JSON Config length incorrect\n");
+		return -1;
+	}
+
+	// Enable & Reset CRC
+	RCC->AHB1ENR |= RCC_AHB1ENR_CRCEN;
+	CRC->CR = 1;
+
+	// Compute CRC
+	// Note: __RBIT funkiness is so that CRC will match standard calculation
+	// See http://forum.chibios.org/phpbb/viewtopic.php?f=2&t=1475 for details
+	for (uint32_t i = 0; i < meta->length; i++)
+	  CRC->DR = __RBIT(*(json+i));
+
+	crc32 = __RBIT(CRC->DR) ^ 0xFFFFFFFF;
+
+	//printf("crc32 = %x\n", crc32);
+
+	// Disable CRC
+	RCC->AHB1ENR &= ~RCC_AHB1ENR_CRCEN;
+
+	// Check CRC
+	if (crc32 != meta->crc32)
+	{
+		newJson = false;
+		printf("JSON Config file CRC incorrect\n");
+		return -1;
+	}
+
+	// JSON is OK, don't check it again
+	newJson = false;
+	printf("JSON Config file recieved Ok\n");
+	return 1;
+}
+
+
+void moveJson()
+{
+	uint32_t i = 0;
+	metadata_t* meta = (metadata_t*)JSON_UPLOAD_ADDRESS;
+
+	uint16_t jsonLength = meta->length;
+
+	// erase the old JSON config file
+	FLASH_If_Erase(JSON_STORAGE_ADDRESS);
+
+	HAL_StatusTypeDef status;
+
+	// store the length of the file in the 0th byte
+	status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, JSON_STORAGE_ADDRESS, jsonLength);
+
+    for (i = 0; i < jsonLength; i++)
+    {
+        if (status == HAL_OK)
+        {
+            status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, (JSON_STORAGE_ADDRESS + 4 + i), *((uint8_t*)(JSON_UPLOAD_ADDRESS + METADATA_LEN + i)));
+        }
+    }
+
+}
 
 void loadModules()
 {
@@ -262,86 +360,92 @@ void loadModules()
 
 
     // INPUTS
-    Module* STOP = new DigitalPin(*ptrInputs, 0, "PD_8", 0, true, NONE);
-    servoThread->registerModule(STOP);
+    Module* FHA = new DigitalPin(*ptrInputs, 0, "PD_12", 0, true, NONE);
+    servoThread->registerModule(FHA);
 
-    Module* PROBE = new DigitalPin(*ptrInputs, 0, "PD_9", 1, true, NONE);
-    servoThread->registerModule(PROBE);
+    Module* FHB = new DigitalPin(*ptrInputs, 0, "PD_13", 1, true, NONE);
+    servoThread->registerModule(FHB);
 
-    Module* INP3 = new DigitalPin(*ptrInputs, 0, "PD_10", 2, true, NONE);
-    servoThread->registerModule(INP3);
-
-    Module* INP4 = new DigitalPin(*ptrInputs, 0, "PD_11", 3, true, NONE);
-    servoThread->registerModule(INP4);
-
-    Module* INP5 = new DigitalPin(*ptrInputs, 0, "PD_14", 4, true, NONE);
-    servoThread->registerModule(INP5);
-
-    Module* INP6 = new DigitalPin(*ptrInputs, 0, "PD_15", 5, true, NONE);
-    servoThread->registerModule(INP6);
-
-    Module* INP7 = new DigitalPin(*ptrInputs, 0, "PC_6", 6, true, NONE);
-    servoThread->registerModule(INP7);
-
-    Module* INP8 = new DigitalPin(*ptrInputs, 0, "PC_7", 7, true, NONE);
-    servoThread->registerModule(INP8);
-
-    Module* INP9 = new DigitalPin(*ptrInputs, 0, "PC_8", 8, true, NONE);
-    servoThread->registerModule(INP9);
-
-    Module* INP10 = new DigitalPin(*ptrInputs, 0, "PC_9", 9, true, NONE);
-    servoThread->registerModule(INP10);
-
-    Module* INP11 = new DigitalPin(*ptrInputs, 0, "PA_11", 10, true, NONE);
-    servoThread->registerModule(INP11);
-
-    Module* INP12 = new DigitalPin(*ptrInputs, 0, "PA_12", 11, true, NONE);
-    servoThread->registerModule(INP12);
-
-    Module* SRO = new DigitalPin(*ptrInputs, 0, "PB_14", 12, true, NONE);
+    Module* SRO = new DigitalPin(*ptrInputs, 0, "PB_14", 2, true, NONE);
     servoThread->registerModule(SRO);
 
-    Module* SJR = new DigitalPin(*ptrInputs, 0, "PB_15", 13, true, NONE);
+    Module* SJR = new DigitalPin(*ptrInputs, 0, "PB_15", 3, true, NONE);
     servoThread->registerModule(SJR);
 
-    Module* x100 = new DigitalPin(*ptrInputs, 0, "PA_15", 14, true, NONE);
+    Module* STOP = new DigitalPin(*ptrInputs, 0, "PD_8", 4, true, NONE);
+    servoThread->registerModule(STOP);
+
+    Module* PROBE = new DigitalPin(*ptrInputs, 0, "PD_9", 5, true, NONE);
+    servoThread->registerModule(PROBE);
+
+    Module* INP3 = new DigitalPin(*ptrInputs, 0, "PD_10", 6, true, NONE);
+    servoThread->registerModule(INP3);
+
+    Module* INP4 = new DigitalPin(*ptrInputs, 0, "PD_11", 7, true, NONE);
+    servoThread->registerModule(INP4);
+
+    Module* INP5 = new DigitalPin(*ptrInputs, 0, "PD_14", 8, true, NONE);
+    servoThread->registerModule(INP5);
+
+    Module* INP6 = new DigitalPin(*ptrInputs, 0, "PD_15", 9, true, NONE);
+    servoThread->registerModule(INP6);
+
+    Module* INP7 = new DigitalPin(*ptrInputs, 0, "PC_6", 10, true, NONE);
+    servoThread->registerModule(INP7);
+
+    Module* INP8 = new DigitalPin(*ptrInputs, 0, "PC_7", 11, true, NONE);
+    servoThread->registerModule(INP8);
+
+    Module* INP9 = new DigitalPin(*ptrInputs, 0, "PC_8", 12, true, NONE);
+    servoThread->registerModule(INP9);
+
+    Module* INP10 = new DigitalPin(*ptrInputs, 0, "PC_9", 13, true, NONE);
+    servoThread->registerModule(INP10);
+
+    Module* INP11 = new DigitalPin(*ptrInputs, 0, "PA_11", 14, true, NONE);
+    servoThread->registerModule(INP11);
+
+    Module* INP12 = new DigitalPin(*ptrInputs, 0, "PA_12", 15, true, NONE);
+    servoThread->registerModule(INP12);
+
+    Module* INDEX = new DigitalPin(*ptrInputs, 0, "PC_15", 16, true, NONE);
+    servoThread->registerModule(INDEX);
+
+    Module* x100 = new DigitalPin(*ptrInputs, 0, "PA_15", 17, true, NONE);
     servoThread->registerModule(x100);
 
-    Module* x10 = new DigitalPin(*ptrInputs, 0, "PC_10", 15, true, NONE);
+    Module* x10 = new DigitalPin(*ptrInputs, 0, "PC_10", 18, true, NONE);
     servoThread->registerModule(x10);
 
-    Module* x1 = new DigitalPin(*ptrInputs, 0, "PC_11", 16, true, NONE);
+    Module* x1 = new DigitalPin(*ptrInputs, 0, "PC_11", 19, true, NONE);
     servoThread->registerModule(x1);
 
-    Module* ESTOP = new DigitalPin(*ptrInputs, 0, "PC_12", 17, true, NONE);
+    Module* ESTOP = new DigitalPin(*ptrInputs, 0, "PC_12", 20, true, NONE);
     servoThread->registerModule(ESTOP);
 
-    Module* Xin = new DigitalPin(*ptrInputs, 0, "PD_7", 18, true, NONE);
+    Module* Xin = new DigitalPin(*ptrInputs, 0, "PD_7", 21, true, NONE);
     servoThread->registerModule(Xin);
 
-    Module* Yin = new DigitalPin(*ptrInputs, 0, "PD_4", 19, true, NONE);
+    Module* Yin = new DigitalPin(*ptrInputs, 0, "PD_4", 22, true, NONE);
     servoThread->registerModule(Yin);
 
-    Module* Zin = new DigitalPin(*ptrInputs, 0, "PD_3", 20, true, NONE);
+    Module* Zin = new DigitalPin(*ptrInputs, 0, "PD_3", 23, true, NONE);
     servoThread->registerModule(Zin);
 
-    Module* Ain = new DigitalPin(*ptrInputs, 0, "PD_2", 21, true, NONE);
+    Module* Ain = new DigitalPin(*ptrInputs, 0, "PD_2", 24, true, NONE);
     servoThread->registerModule(Ain);
 
-    Module* Bin = new DigitalPin(*ptrInputs, 0, "PD_1", 22, true, NONE);
+    Module* Bin = new DigitalPin(*ptrInputs, 0, "PD_1", 25, true, NONE);
     servoThread->registerModule(Bin);
 
-    Module* Cin = new DigitalPin(*ptrInputs, 0, "PD_0", 23, true, NONE);
+    Module* Cin = new DigitalPin(*ptrInputs, 0, "PD_0", 26, true, NONE);
     servoThread->registerModule(Cin);
 
-    Module* WHA = new DigitalPin(*ptrInputs, 0, "PB_7", 24, false, NONE);
+    Module* WHA = new DigitalPin(*ptrInputs, 0, "PB_7", 27, false, NONE);
     servoThread->registerModule(WHA);
 
-    Module* WHB = new DigitalPin(*ptrInputs, 0, "PB_6", 25, false, NONE);
+    Module* WHB = new DigitalPin(*ptrInputs, 0, "PB_6", 28, false, NONE);
     servoThread->registerModule(WHB);
-
-    Module* INDEX = new DigitalPin(*ptrInputs, 0, "PC_15", 25, false, NONE);
-    servoThread->registerModule(INDEX);
 
 
     // OUTPUTS
@@ -384,7 +488,7 @@ void loadModules()
     //baseThread->registerModule(spindle);
 
 
-    // MANUAL PULSE GENERATOR
+    // (NVMPG serial) MANUAL PULSE GENERATOR
 	MPG = new NVMPG(*ptrMpgData, *ptrNVMPGInputs);
 	servoThread->registerModule(MPG);
 }
@@ -471,6 +575,7 @@ int main(void)
 	              loadModules();
 	              //debugThreadLow();
 	              udpServer_init();
+	              IAP_tftpd_init();
 
 	              currentState = ST_START;
 	              break;
@@ -578,6 +683,15 @@ int main(void)
 	  // do Ethernet tasks
 	  ethernetif_input(&gnetif);
 	  sys_check_timeouts();
+
+	  if (newJson)
+	  {
+		  printf("\n\nChecking new configuration file\n");
+		  if (checkJson() > 0)
+		  {
+			  moveJson();
+		  }
+	  }
   }
   /* USER CODE END 3 */
 }

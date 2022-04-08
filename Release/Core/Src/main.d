@@ -57,7 +57,7 @@ Core/Src/main.o: ../Core/Src/main.cpp ../Core/Inc/main.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/dhcp.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/timeouts.h \
  ../LWIP/Target/ethernetif.h ../Core/Inc/configuration.h \
- ../Core/Inc/remora.h \
+ ../Core/Inc/remora.h ../Core/Inc/flash_if.h ../Core/Inc/main.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/udp.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/ip.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/ip6.h \
@@ -66,6 +66,8 @@ Core/Src/main.o: ../Core/Src/main.cpp ../Core/Inc/main.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/tcp.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/icmp.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/prot/icmp.h \
+ ../Core/Inc/tftpserver.h ../Core/Src/lib/ArduinoJson6/ArduinoJson.h \
+ ../Core/Src/lib/ArduinoJson6/ArduinoJson.hpp \
  ../Core/Src/drivers/pin/pin.h ../Core/Src/interrupt/irqHandlers.h \
  ../Core/Src/interrupt/interrupt.h ../Core/Src/interrupt/interrupt.h \
  ../Core/Src/thread/pruThread.h ../Core/Src/thread/timer.h \
@@ -215,6 +217,10 @@ Core/Src/main.o: ../Core/Src/main.cpp ../Core/Inc/main.h \
 
 ../Core/Inc/remora.h:
 
+../Core/Inc/flash_if.h:
+
+../Core/Inc/main.h:
+
 ../Middlewares/Third_Party/LwIP/src/include/lwip/udp.h:
 
 ../Middlewares/Third_Party/LwIP/src/include/lwip/ip.h:
@@ -230,6 +236,12 @@ Core/Src/main.o: ../Core/Src/main.cpp ../Core/Inc/main.h \
 ../Middlewares/Third_Party/LwIP/src/include/lwip/icmp.h:
 
 ../Middlewares/Third_Party/LwIP/src/include/lwip/prot/icmp.h:
+
+../Core/Inc/tftpserver.h:
+
+../Core/Src/lib/ArduinoJson6/ArduinoJson.h:
+
+../Core/Src/lib/ArduinoJson6/ArduinoJson.hpp:
 
 ../Core/Src/drivers/pin/pin.h:
 
