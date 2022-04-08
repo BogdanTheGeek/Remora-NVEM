@@ -262,86 +262,93 @@ void loadModules()
 
 
     // INPUTS
-    Module* STOP = new DigitalPin(*ptrInputs, 0, "PD_8", 0, true, NONE);
-    servoThread->registerModule(STOP);
+	Module* FHA = new DigitalPin(*ptrInputs, 0, "PD_12", 0, true, NONE);
+	servoThread->registerModule(FHA);
 
-    Module* PROBE = new DigitalPin(*ptrInputs, 0, "PD_9", 1, true, NONE);
-    servoThread->registerModule(PROBE);
+	Module* FHB = new DigitalPin(*ptrInputs, 0, "PD_13", 1, true, NONE);
+	servoThread->registerModule(FHB);
 
-    Module* INP3 = new DigitalPin(*ptrInputs, 0, "PD_10", 2, true, NONE);
-    servoThread->registerModule(INP3);
+	Module* SRO = new DigitalPin(*ptrInputs, 0, "PB_14", 2, true, NONE);
+	servoThread->registerModule(SRO);
 
-    Module* INP4 = new DigitalPin(*ptrInputs, 0, "PD_11", 3, true, NONE);
-    servoThread->registerModule(INP4);
+	Module* SJR = new DigitalPin(*ptrInputs, 0, "PB_15", 3, true, NONE);
+	servoThread->registerModule(SJR);
 
-    Module* INP5 = new DigitalPin(*ptrInputs, 0, "PD_14", 4, true, NONE);
-    servoThread->registerModule(INP5);
+	Module* STOP = new DigitalPin(*ptrInputs, 0, "PD_8", 4, true, NONE);
+	servoThread->registerModule(STOP);
 
-    Module* INP6 = new DigitalPin(*ptrInputs, 0, "PD_15", 5, true, NONE);
-    servoThread->registerModule(INP6);
+	Module* PROBE = new DigitalPin(*ptrInputs, 0, "PD_9", 5, true, NONE);
+	servoThread->registerModule(PROBE);
 
-    Module* INP7 = new DigitalPin(*ptrInputs, 0, "PC_6", 6, true, NONE);
-    servoThread->registerModule(INP7);
+	Module* INP3 = new DigitalPin(*ptrInputs, 0, "PD_10", 6, true, NONE);
+	servoThread->registerModule(INP3);
 
-    Module* INP8 = new DigitalPin(*ptrInputs, 0, "PC_7", 7, true, NONE);
-    servoThread->registerModule(INP8);
+	Module* INP4 = new DigitalPin(*ptrInputs, 0, "PD_11", 7, true, NONE);
+	servoThread->registerModule(INP4);
 
-    Module* INP9 = new DigitalPin(*ptrInputs, 0, "PC_8", 8, true, NONE);
-    servoThread->registerModule(INP9);
+	Module* INP5 = new DigitalPin(*ptrInputs, 0, "PD_14", 8, true, NONE);
+	servoThread->registerModule(INP5);
 
-    Module* INP10 = new DigitalPin(*ptrInputs, 0, "PC_9", 9, true, NONE);
-    servoThread->registerModule(INP10);
+	Module* INP6 = new DigitalPin(*ptrInputs, 0, "PD_15", 9, true, NONE);
+	servoThread->registerModule(INP6);
 
-    Module* INP11 = new DigitalPin(*ptrInputs, 0, "PA_11", 10, true, NONE);
-    servoThread->registerModule(INP11);
+	Module* INP7 = new DigitalPin(*ptrInputs, 0, "PC_6", 10, true, NONE);
+	servoThread->registerModule(INP7);
 
-    Module* INP12 = new DigitalPin(*ptrInputs, 0, "PA_12", 11, true, NONE);
-    servoThread->registerModule(INP12);
+	Module* INP8 = new DigitalPin(*ptrInputs, 0, "PC_7", 11, true, NONE);
+	servoThread->registerModule(INP8);
 
-    Module* SRO = new DigitalPin(*ptrInputs, 0, "PB_14", 12, true, NONE);
-    servoThread->registerModule(SRO);
+	Module* INP9 = new DigitalPin(*ptrInputs, 0, "PC_8", 12, true, NONE);
+	servoThread->registerModule(INP9);
 
-    Module* SJR = new DigitalPin(*ptrInputs, 0, "PB_15", 13, true, NONE);
-    servoThread->registerModule(SJR);
+	Module* INP10 = new DigitalPin(*ptrInputs, 0, "PC_9", 13, true, NONE);
+	servoThread->registerModule(INP10);
 
-    Module* x100 = new DigitalPin(*ptrInputs, 0, "PA_15", 14, true, NONE);
-    servoThread->registerModule(x100);
+	Module* INP11 = new DigitalPin(*ptrInputs, 0, "PA_11", 14, true, NONE);
+	servoThread->registerModule(INP11);
 
-    Module* x10 = new DigitalPin(*ptrInputs, 0, "PC_10", 15, true, NONE);
-    servoThread->registerModule(x10);
+	Module* INP12 = new DigitalPin(*ptrInputs, 0, "PA_12", 15, true, NONE);
+	servoThread->registerModule(INP12);
 
-    Module* x1 = new DigitalPin(*ptrInputs, 0, "PC_11", 16, true, NONE);
-    servoThread->registerModule(x1);
+	Module* INDEX = new DigitalPin(*ptrInputs, 0, "PC_15", 16, true, NONE);
+	servoThread->registerModule(INDEX);
 
-    Module* ESTOP = new DigitalPin(*ptrInputs, 0, "PC_12", 17, true, NONE);
-    servoThread->registerModule(ESTOP);
+	Module* x100 = new DigitalPin(*ptrInputs, 0, "PA_15", 17, true, NONE);
+	servoThread->registerModule(x100);
 
-    Module* Xin = new DigitalPin(*ptrInputs, 0, "PD_7", 18, true, NONE);
-    servoThread->registerModule(Xin);
+	Module* x10 = new DigitalPin(*ptrInputs, 0, "PC_10", 18, true, NONE);
+	servoThread->registerModule(x10);
 
-    Module* Yin = new DigitalPin(*ptrInputs, 0, "PD_4", 19, true, NONE);
-    servoThread->registerModule(Yin);
+	Module* x1 = new DigitalPin(*ptrInputs, 0, "PC_11", 19, true, NONE);
+	servoThread->registerModule(x1);
 
-    Module* Zin = new DigitalPin(*ptrInputs, 0, "PD_3", 20, true, NONE);
-    servoThread->registerModule(Zin);
+	Module* ESTOP = new DigitalPin(*ptrInputs, 0, "PC_12", 20, true, NONE);
+	servoThread->registerModule(ESTOP);
 
-    Module* Ain = new DigitalPin(*ptrInputs, 0, "PD_2", 21, true, NONE);
-    servoThread->registerModule(Ain);
+	Module* Xin = new DigitalPin(*ptrInputs, 0, "PD_7", 21, true, NONE);
+	servoThread->registerModule(Xin);
 
-    Module* Bin = new DigitalPin(*ptrInputs, 0, "PD_1", 22, true, NONE);
-    servoThread->registerModule(Bin);
+	Module* Yin = new DigitalPin(*ptrInputs, 0, "PD_4", 22, true, NONE);
+	servoThread->registerModule(Yin);
 
-    Module* Cin = new DigitalPin(*ptrInputs, 0, "PD_0", 23, true, NONE);
-    servoThread->registerModule(Cin);
+	Module* Zin = new DigitalPin(*ptrInputs, 0, "PD_3", 23, true, NONE);
+	servoThread->registerModule(Zin);
 
-    Module* WHA = new DigitalPin(*ptrInputs, 0, "PB_7", 24, false, NONE);
-    servoThread->registerModule(WHA);
+	Module* Ain = new DigitalPin(*ptrInputs, 0, "PD_2", 24, true, NONE);
+	servoThread->registerModule(Ain);
 
-    Module* WHB = new DigitalPin(*ptrInputs, 0, "PB_6", 25, false, NONE);
-    servoThread->registerModule(WHB);
+	Module* Bin = new DigitalPin(*ptrInputs, 0, "PD_1", 25, true, NONE);
+	servoThread->registerModule(Bin);
 
-    Module* INDEX = new DigitalPin(*ptrInputs, 0, "PC_15", 25, false, NONE);
-    servoThread->registerModule(INDEX);
+	Module* Cin = new DigitalPin(*ptrInputs, 0, "PD_0", 26, true, NONE);
+	servoThread->registerModule(Cin);
+
+	Module* WHA = new DigitalPin(*ptrInputs, 0, "PB_7", 27, false, NONE);
+	servoThread->registerModule(WHA);
+
+	Module* WHB = new DigitalPin(*ptrInputs, 0, "PB_6", 28, false, NONE);
+	servoThread->registerModule(WHB);
+
 
 
     // OUTPUTS
