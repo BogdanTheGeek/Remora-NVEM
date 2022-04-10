@@ -69,7 +69,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 UART_HandleTypeDef huart2;
-TIM_HandleTypeDef htim2;
+IWDG_HandleTypeDef hiwdg;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -90,6 +90,7 @@ TIM_HandleTypeDef htim2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_USART2_UART_Init(void);
+static void MX_IWDG_Init(void);
 
 void udpServer_init(void);
 void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
@@ -195,7 +196,7 @@ uint8_t checkJson()
 	{
 		newJson = false;
 		printf("JSON Config length incorrect\n");
-		return -1;
+		return 2;
 	}
 
 	// Enable & Reset CRC
@@ -220,12 +221,12 @@ uint8_t checkJson()
 	{
 		newJson = false;
 		printf("JSON Config file CRC incorrect\n");
-		return -1;
+		return 3;
 	}
 
 	// JSON is OK, don't check it again
 	newJson = false;
-	printf("JSON Config file recieved Ok\n");
+	printf("JSON Config file received Ok\n");
 	return 1;
 }
 
@@ -254,6 +255,34 @@ void moveJson()
     }
 
 }
+
+
+void jsonFromFlash(std::string json)
+{
+    int c;
+    uint32_t i = 0;
+    uint32_t jsonLength;
+
+    // read byte 0 to determine length to read
+    jsonLength = *(uint32_t*)JSON_STORAGE_ADDRESS;
+
+    if (jsonLength == 0xFFFFFFFF)
+    {
+    	printf("Flash storage location is empty - no config file\n\n");
+    }
+    else
+    {
+		json.resize(jsonLength);
+
+		for (i = 0; i < jsonLength; i++)
+		{
+			c = *(uint8_t*)(JSON_STORAGE_ADDRESS + 4 + i);
+			strJson.push_back(c);
+		}
+		printf("\n%s\n", json.c_str());
+    }
+}
+
 
 void loadModules()
 {
@@ -542,6 +571,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_LWIP_Init();
   MX_USART2_UART_Init();
+  MX_IWDG_Init();
 
   /* USER CODE BEGIN 2 */
   enum State currentState;
@@ -570,9 +600,10 @@ int main(void)
 	              }
 	              prevState = currentState;
 
+	              jsonFromFlash(strJson);
 	              createThreads();
 	              //debugThreadHigh();
-	              loadModules();
+	              //loadModules();
 	              //debugThreadLow();
 	              udpServer_init();
 	              IAP_tftpd_init();
@@ -680,6 +711,9 @@ int main(void)
 	              break;
 	  }
 
+	  // refresh the watchdog
+	  HAL_IWDG_Refresh(&hiwdg);
+
 	  // do Ethernet tasks
 	  ethernetif_input(&gnetif);
 	  sys_check_timeouts();
@@ -687,9 +721,12 @@ int main(void)
 	  if (newJson)
 	  {
 		  printf("\n\nChecking new configuration file\n");
-		  if (checkJson() > 0)
+		  if (checkJson() == 1)
 		  {
+			  printf("Moving new config file to Flash storage\n");
 			  moveJson();
+			  // force a watchdog reset to force load of new configuration
+			  while(1){}
 		  }
 	  }
   }
@@ -770,6 +807,34 @@ static void MX_USART2_UART_Init(void)
 
 }
 
+
+/**
+  * @brief IWDG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_IWDG_Init(void)
+{
+
+  /* USER CODE BEGIN IWDG_Init 0 */
+
+  /* USER CODE END IWDG_Init 0 */
+
+  /* USER CODE BEGIN IWDG_Init 1 */
+
+  /* USER CODE END IWDG_Init 1 */
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_64;
+  hiwdg.Init.Reload = 499;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN IWDG_Init 2 */
+
+  /* USER CODE END IWDG_Init 2 */
+
+}
 
 /* USER CODE BEGIN 4 */
 
