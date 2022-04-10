@@ -274,7 +274,7 @@ void loadModules()
 	Module* SJR = new DigitalPin(*ptrInputs, 0, "PB_15", 3, true, NONE);
 	servoThread->registerModule(SJR);
 
-	Module* STOP = new DigitalPin(*ptrInputs, 0, "PD_8", 4, true, NONE);
+	Module* STOP = new DigitalPin(*ptrInputs, 0, "PD_8", 4, false, NONE);
 	servoThread->registerModule(STOP);
 
 	Module* PROBE = new DigitalPin(*ptrInputs, 0, "PD_9", 5, true, NONE);

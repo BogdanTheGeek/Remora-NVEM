@@ -2408,7 +2408,7 @@ Disassembly of section .text:
  8001b54:	f008 fcda 	bl	800a50c <_Znwj>
  8001b58:	2304      	movs	r3, #4
  8001b5a:	4680      	mov	r8, r0
- 8001b5c:	e9cd 7601 	strd	r7, r6, [sp, #4]
+ 8001b5c:	e9cd 6601 	strd	r6, r6, [sp, #4]
  8001b60:	9300      	str	r3, [sp, #0]
  8001b62:	4632      	mov	r2, r6
  8001b64:	4623      	mov	r3, r4
