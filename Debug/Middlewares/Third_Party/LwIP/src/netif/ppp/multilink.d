@@ -23,6 +23,7 @@ Middlewares/Third_Party/LwIP/src/netif/ppp/multilink.o: \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dma.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dma_ex.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_cortex.h \
+ ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_crc.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_eth.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_flash.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_flash_ex.h \
@@ -84,6 +85,8 @@ Middlewares/Third_Party/LwIP/src/netif/ppp/multilink.o: \
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dma_ex.h:
 
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_cortex.h:
+
+../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_crc.h:
 
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_eth.h:
 

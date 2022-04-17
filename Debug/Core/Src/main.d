@@ -19,6 +19,7 @@ Core/Src/main.o: ../Core/Src/main.cpp ../Core/Inc/main.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dma.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dma_ex.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_cortex.h \
+ ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_crc.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_eth.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_flash.h \
  ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_flash_ex.h \
@@ -74,8 +75,8 @@ Core/Src/main.o: ../Core/Src/main.cpp ../Core/Inc/main.h \
  ../Core/Src/thread/pruThread.h ../Core/Src/thread/timer.h \
  ../Core/Src/thread/createThreads.h ../Core/Inc/extern.h \
  ../Core/Inc/configuration.h ../Core/Inc/remora.h \
- ../Core/Src/modules/module.h ../Core/Src/modules/blink/blink.h \
- ../Core/Src/modules/blink/../module.h \
+ ../Core/Inc/../Src/thread/pruThread.h ../Core/Src/modules/module.h \
+ ../Core/Src/modules/blink/blink.h ../Core/Src/modules/blink/../module.h \
  ../Core/Src/modules/blink/../../drivers/pin/pin.h \
  ../Core/Src/modules/comms/RemoraComms.h \
  ../Middlewares/Third_Party/LwIP/src/include/lwip/api.h \
@@ -137,6 +138,8 @@ Core/Src/main.o: ../Core/Src/main.cpp ../Core/Inc/main.h \
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_dma_ex.h:
 
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_cortex.h:
+
+../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_crc.h:
 
 ../Drivers/STM32F2xx_HAL_Driver/Inc/stm32f2xx_hal_eth.h:
 
@@ -265,6 +268,8 @@ Core/Src/main.o: ../Core/Src/main.cpp ../Core/Inc/main.h \
 ../Core/Inc/configuration.h:
 
 ../Core/Inc/remora.h:
+
+../Core/Inc/../Src/thread/pruThread.h:
 
 ../Core/Src/modules/module.h:
 

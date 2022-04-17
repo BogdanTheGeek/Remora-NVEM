@@ -3,11 +3,11 @@
 /***********************************************************************
                 MODULE CONFIGURATION AND CREATION FROM JSON     
 ************************************************************************/
-/*
+
 void createDigitalPin()
 {
     const char* comment = module["Comment"];
-    printf("%s\n",comment);
+    printf("\n%s\n",comment);
 
     const char* pin = module["Pin"];
     const char* mode = module["Mode"];
@@ -52,13 +52,11 @@ void createDigitalPin()
 
     if (!strcmp(mode,"Output"))
     {
-        //Module* digitalPin = new DigitalPin(*ptrOutputs, 1, pin, dataBit, invert);
         Module* digitalPin = new DigitalPin(*ptrOutputs, 1, pin, dataBit, inv, mod);
         servoThread->registerModule(digitalPin);
     }
     else if (!strcmp(mode,"Input"))
     {
-        //Module* digitalPin = new DigitalPin(*ptrInputs, 0, pin, dataBit, invert);
         Module* digitalPin = new DigitalPin(*ptrInputs, 0, pin, dataBit, inv, mod);
         servoThread->registerModule(digitalPin);
     }
@@ -67,7 +65,7 @@ void createDigitalPin()
         printf("Error - incorrectly defined Digital Pin\n");
     }
 }
-*/
+
 
 /***********************************************************************
                 METHOD DEFINITIONS
