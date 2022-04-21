@@ -2,10 +2,14 @@
 #define DIGITALPIN_H
 
 #include <cstdint>
+#include <sys/errno.h>
 
 #include "../module.h"
 #include "../../drivers/pin/pin.h"
 
+#include "extern.h"
+
+void createDigitalPin(void);
 
 class DigitalPin : public Module
 {

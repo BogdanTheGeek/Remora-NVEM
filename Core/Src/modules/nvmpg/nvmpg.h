@@ -4,12 +4,16 @@
 #include "stm32f2xx_hal.h"
 
 #include <cstdint>
+#include <sys/errno.h>
 
 #include "configuration.h"
 #include "remora.h"
 #include "../module.h"
 #include "../moduleinterrupt.h"
 
+#include "extern.h"
+
+void createNVMPG(void);
 
 class NVMPG : public Module
 {

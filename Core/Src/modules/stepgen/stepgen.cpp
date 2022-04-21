@@ -5,25 +5,25 @@
                 MODULE CONFIGURATION AND CREATION FROM JSON     
 ************************************************************************/
 
-//void createStepgen()
-//{
-//    const char* comment = module["Comment"];
-//    printf("%s\n",comment);
+void createStepgen()
+{
+    const char* comment = module["Comment"];
+    printf("\n%s\n",comment);
 
-//    int joint = module["Joint Number"];
-//    const char* enable = module["Enable Pin"];
-//    const char* step = module["Step Pin"];
-//    const char* dir = module["Direction Pin"];
+    int joint = module["Joint Number"];
+    const char* step = module["Step Pin"];
+    const char* dir = module["Direction Pin"];
 
     // configure pointers to data source and feedback location
-//    ptrJointFreqCmd[joint] = &rxData.jointFreqCmd[joint];
-//    ptrJointFeedback[joint] = &txData.jointFeedback[joint];
-//    ptrJointEnable = &rxData.jointEnable;
+    ptrJointFreqCmd[joint] = &rxData.jointFreqCmd[joint];
+    ptrJointFeedback[joint] = &txData.jointFeedback[joint];
+    ptrJointEnable = &rxData.jointEnable;
 
     // create the step generator, register it in the thread
-//    Module* stepgen = new Stepgen(base_freq, joint, enable, step, dir, STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
-//    baseThread->registerModule(stepgen);
-//}
+    Module* stepgen = new Stepgen(base_freq, joint, step, dir, STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
+    baseThread->registerModule(stepgen);
+    baseThread->registerModulePost(stepgen);
+}
 
 
 /***********************************************************************

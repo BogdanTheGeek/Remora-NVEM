@@ -2,8 +2,13 @@
 #define SPINDLEPWM_H
 
 #include "stm32f2xx_hal.h"
+#include <sys/errno.h>
 
 #include "../module.h"
+
+#include "extern.h"
+
+void createSpindlePWM(void);
 
 class SpindlePWM : public Module
 {

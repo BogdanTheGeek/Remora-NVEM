@@ -23,15 +23,24 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <inttypes.h>
 #include <cstring>
 
 #include "configuration.h"
 #include "remora.h"
 
+// Flash storage
+#include "flash_if.h"
+
 // Ethernet
 #include "lwip/pbuf.h"
 #include "lwip/udp.h"
 #include "lwip/tcp.h"
+#include "tftpserver.h"
+
+// libraries
+#include <sys/errno.h>
+#include "lib/ArduinoJson6/ArduinoJson.h"
 
 // drivers
 #include "drivers/pin/pin.h"
@@ -59,11 +68,14 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+UART_HandleTypeDef huart2;
+IWDG_HandleTypeDef hiwdg;
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -72,9 +84,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-UART_HandleTypeDef huart2;
-TIM_HandleTypeDef htim2;
-
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -82,6 +91,7 @@ TIM_HandleTypeDef htim2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_USART2_UART_Init(void);
+static void MX_IWDG_Init(void);
 
 void udpServer_init(void);
 void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
@@ -118,8 +128,8 @@ enum State {
 };
 
 uint8_t resetCnt;
-//uint32_t base_freq = PRU_BASEFREQ;
-//uint32_t servo_freq = PRU_SERVOFREQ;
+uint32_t base_freq = PRU_BASEFREQ;
+uint32_t servo_freq = PRU_SERVOFREQ;
 
 // boolean
 volatile bool PRUreset;
@@ -129,16 +139,14 @@ bool threadsRunning = false;
 // pointers to objects with global scope
 pruThread* servoThread;
 pruThread* baseThread;
+RemoraComms* comms;
+Module* MPG;
 
-// unions for RX and TX data
+// unions for RX, TX and MPG data
 rxData_t rxBuffer;				// temporary RX buffer
 volatile rxData_t rxData;
 volatile txData_t txData;
-
-RemoraComms* comms;
-
 mpgData_t mpgData;
-Module* MPG;
 
 // pointers to data
 volatile rxData_t*  ptrRxData = &rxData;
@@ -153,240 +161,234 @@ volatile float*   ptrProcessVariable[VARIABLES];
 volatile uint32_t* ptrInputs;
 volatile uint32_t* ptrOutputs;
 volatile uint16_t* ptrNVMPGInputs;
-
 volatile mpgData_t* ptrMpgData = &mpgData;
 
 
+// Json config file stuff
+
+// 512 bytes of metadata in front of actual JSON file
+typedef struct
+{
+  uint32_t crc32;   		// crc32 of JSON
+  uint32_t length;			// length in words for CRC calculation
+  uint32_t jsonLength;  	// length in of JSON config in bytes
+  uint8_t padding[500];
+} metadata_t;
+#define METADATA_LEN    512
+
+volatile bool newJson;
+uint32_t crc32;
+FILE *jsonFile;
+string strJson;
+DynamicJsonDocument doc(JSON_BUFF_SIZE);
+JsonObject thread;
+JsonObject module;
+
+int8_t checkJson()
+{
+	metadata_t* meta = (metadata_t*)JSON_UPLOAD_ADDRESS;
+	uint32_t* json = (uint32_t*)(JSON_UPLOAD_ADDRESS + METADATA_LEN);
+
+	// Check length is reasonable
+	if (meta->length > (USER_FLASH_END_ADDRESS - JSON_UPLOAD_ADDRESS))
+	{
+		newJson = false;
+		printf("JSON Config length incorrect\n");
+		return -1;
+	}
+
+	// Enable & Reset CRC
+	RCC->AHB1ENR |= RCC_AHB1ENR_CRCEN;
+	CRC->CR = 1;
+
+	// Compute CRC
+	// Note: __RBIT is used so that CRC will match standard calculation
+	for (uint32_t i = 0; i < meta->length; i++) CRC->DR = __RBIT(*(json+i));
+	crc32 = __RBIT(CRC->DR) ^ 0xFFFFFFFF;
+
+	printf("Length = %d\n", meta->length);
+	printf("JSON length = %d\n", meta->jsonLength);
+	printf("crc32 = %x\n", crc32);
+
+	// Disable CRC
+	RCC->AHB1ENR &= ~RCC_AHB1ENR_CRCEN;
+
+	// Check CRC
+	if (crc32 != meta->crc32)
+	{
+		newJson = false;
+		printf("JSON Config file CRC incorrect\n");
+		return -1;
+	}
+
+	// JSON is OK, don't check it again
+	newJson = false;
+	printf("JSON Config file received Ok\n");
+	return 1;
+}
+
+
+void moveJson()
+{
+	uint32_t i = 0;
+	metadata_t* meta = (metadata_t*)JSON_UPLOAD_ADDRESS;
+
+	uint16_t jsonLength = meta->jsonLength;
+
+	// erase the old JSON config file
+	FLASH_If_Erase(JSON_STORAGE_ADDRESS);
+
+	HAL_StatusTypeDef status;
+
+	// store the length of the file in the 0th byte
+	status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, JSON_STORAGE_ADDRESS, jsonLength);
+
+    for (i = 0; i < jsonLength; i++)
+    {
+        if (status == HAL_OK)
+        {
+            status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, (JSON_STORAGE_ADDRESS + 4 + i), *((uint8_t*)(JSON_UPLOAD_ADDRESS + METADATA_LEN + i)));
+        }
+    }
+
+}
+
+
+void jsonFromFlash(std::string json)
+{
+    int c;
+    uint32_t i = 0;
+    uint32_t jsonLength;
+
+    printf("\n1. Loading JSON configuration file from Flash memory\n");
+
+    // read byte 0 to determine length to read
+    jsonLength = *(uint32_t*)JSON_STORAGE_ADDRESS;
+
+    if (jsonLength == 0xFFFFFFFF)
+    {
+    	printf("Flash storage location is empty - no config file\n\n");
+    }
+    else
+    {
+		json.resize(jsonLength);
+
+		for (i = 0; i < jsonLength; i++)
+		{
+			c = *(uint8_t*)(JSON_STORAGE_ADDRESS + 4 + i);
+			strJson.push_back(c);
+		}
+		printf("\n%s\n", json.c_str());
+    }
+}
+
+void deserialiseJSON()
+{
+    printf("\n2. Parsing JSON configuration file\n");
+
+    const char *json = strJson.c_str();
+
+    // parse the json configuration file
+    DeserializationError error = deserializeJson(doc, json);
+
+    printf("Config deserialisation - ");
+
+    switch (error.code())
+    {
+        case DeserializationError::Ok:
+            printf("Deserialization succeeded\n");
+            break;
+        case DeserializationError::InvalidInput:
+            printf("Invalid input!\n");
+            configError = true;
+            break;
+        case DeserializationError::NoMemory:
+            printf("Not enough memory\n");
+            configError = true;
+            break;
+        default:
+            printf("Deserialization failed\n");
+            configError = true;
+            break;
+    }
+}
+
+
+void configThreads()
+{
+    if (configError) return;
+
+    printf("\n3. Configuring threads\n");
+
+    JsonArray Threads = doc["Threads"];
+
+    // create objects from JSON data
+    for (JsonArray::iterator it=Threads.begin(); it!=Threads.end(); ++it)
+    {
+        thread = *it;
+
+        const char* configor = thread["Thread"];
+        uint32_t    freq = thread["Frequency"];
+
+        if (!strcmp(configor,"Base"))
+        {
+            base_freq = freq;
+            printf("Setting BASE thread frequency to %d\n", base_freq);
+        }
+        else if (!strcmp(configor,"Servo"))
+        {
+            servo_freq = freq;
+            printf("Setting SERVO thread frequency to %d\n", servo_freq);
+        }
+    }
+}
+
 void loadModules()
 {
-	int joint;
-    ptrInputs = &txData.inputs;
-    ptrOutputs = &rxData.outputs;
-    ptrNVMPGInputs = &txData.NVMPGinputs;
+    printf("\n4. Loading modules\n");
 
-    // Ethernet communication monitoring
+	// Ethernet communication monitoring
 	comms = new RemoraComms();
 	servoThread->registerModule(comms);
 
+    if (configError) return;
+
+    JsonArray Modules = doc["Modules"];
+
+    // create objects from JSON data
+    for (JsonArray::iterator it=Modules.begin(); it!=Modules.end(); ++it)
+    {
+        module = *it;
+
+        const char* thread = module["Thread"];
+        const char* type = module["Type"];
+
+        if (!strcmp(thread,"Base"))
+        {
+            printf("\nBase thread object\n");
+
+            if (!strcmp(type,"Stepgen"))
+            {
+                createStepgen();
+            }
+         }
+        else if (!strcmp(thread,"Servo"))
+        {
+        	if (!strcmp(type,"Digital Pin"))
+			{
+				createDigitalPin();
+			}
+        	else if (!strcmp(type,"Spindle PWM"))
+			{
+				createSpindlePWM();
+			}
+        	else if (!strcmp(type,"NVMPG"))
+			{
+				createNVMPG();
+			}
+        }
+    }
 
-	// -------------------- TESTING ---------------------------------
-	//printf("\nCreate 1 second blink module to test SERVO thread");
-    //Module* blinkServo = new Blink("PC_2", PRU_SERVOFREQ, 1); //"PB_8"
-    //servoThread->registerModule(blinkServo);
-
-    //printf("\nCreate 1 second blink module to test BASE thread");
-    //Module* blinkBase = new Blink("PC_3", PRU_BASEFREQ, 1); //"PC_12"
-    //baseThread->registerModule(blinkBase);
-	// -------------------- TESTING ---------------------------------
-
-
-	// STEP GENERATORS
-
-	// Step generator for Joint 0 [X axis]
-	joint = 0;
-	printf("\nCreate step generator for Joint %d\n", joint);
-
-	ptrJointFreqCmd[joint] = &rxData.jointFreqCmd[joint];
-    ptrJointFeedback[joint] = &txData.jointFeedback[joint];
-    ptrJointEnable = &rxData.jointEnable;
-
-    Module* joint0 = new Stepgen(PRU_BASEFREQ, joint, "PE_15", "PE_14", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
-    baseThread->registerModule(joint0);
-    baseThread->registerModulePost(joint0);
-
-
-	// Step generator for Joint 1 [Y axis]
-	joint = 1;
-	printf("\nCreate step generator for Joint %d\n", joint);
-
-	ptrJointFreqCmd[joint] = &rxData.jointFreqCmd[joint];
-    ptrJointFeedback[joint] = &txData.jointFeedback[joint];
-    ptrJointEnable = &rxData.jointEnable;
-
-    Module* joint1 = new Stepgen(PRU_BASEFREQ, joint, "PE_13", "PE_12", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
-    baseThread->registerModule(joint1);
-    baseThread->registerModulePost(joint1);
-
-
-	// Step generator for Joint 2 [Z axis]
-	joint = 2;
-	printf("\nCreate step generator for Joint %d\n", joint);
-
-	ptrJointFreqCmd[joint] = &rxData.jointFreqCmd[joint];
-    ptrJointFeedback[joint] = &txData.jointFeedback[joint];
-    ptrJointEnable = &rxData.jointEnable;
-
-    Module* joint2 = new Stepgen(PRU_BASEFREQ, joint, "PE_11", "PE_10", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
-    baseThread->registerModule(joint2);
-    baseThread->registerModulePost(joint2);
-
-
-	// Step generator for Joint 3 [A axis]
-	joint = 3;
-	printf("\nCreate step generator for Joint %d\n", joint);
-
-	ptrJointFreqCmd[joint] = &rxData.jointFreqCmd[joint];
-	ptrJointFeedback[joint] = &txData.jointFeedback[joint];
-	ptrJointEnable = &rxData.jointEnable;
-
-	Module* joint3 = new Stepgen(PRU_BASEFREQ, joint, "PE_9", "PE_8", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
-	baseThread->registerModule(joint3);
-	baseThread->registerModulePost(joint3);
-
-
- 	// Step generator for Joint 4 [B axis]
-	joint = 4;
-	printf("\nCreate step generator for Joint %d\n", joint);
-
-	ptrJointFreqCmd[joint] = &rxData.jointFreqCmd[joint];
-    ptrJointFeedback[joint] = &txData.jointFeedback[joint];
-    ptrJointEnable = &rxData.jointEnable;
-
-    Module* joint4 = new Stepgen(PRU_BASEFREQ, joint, "PE_7", "PA_8", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
-    baseThread->registerModule(joint4);
-    baseThread->registerModulePost(joint4);
-
-
-	// Step generator for Joint 5 [C axis]
-	joint = 5;
-	printf("\nCreate step generator for Joint %d\n", joint);
-
-	ptrJointFreqCmd[joint] = &rxData.jointFreqCmd[joint];
-    ptrJointFeedback[joint] = &txData.jointFeedback[joint];
-    ptrJointEnable = &rxData.jointEnable;
-
-    //Module* joint5 = new Stepgen(PRU_BASEFREQ, joint, "PA_6", "PA_5", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
-    Module* joint5 = new Stepgen(PRU_BASEFREQ, joint, "PE_9", "PE_8", STEPBIT, *ptrJointFreqCmd[joint], *ptrJointFeedback[joint], *ptrJointEnable);
-    baseThread->registerModule(joint5);
-    baseThread->registerModulePost(joint5);
-
-
-    // INPUTS
-    Module* STOP = new DigitalPin(*ptrInputs, 0, "PD_8", 0, true, NONE);
-    servoThread->registerModule(STOP);
-
-    Module* PROBE = new DigitalPin(*ptrInputs, 0, "PD_9", 1, true, NONE);
-    servoThread->registerModule(PROBE);
-
-    Module* INP3 = new DigitalPin(*ptrInputs, 0, "PD_10", 2, true, NONE);
-    servoThread->registerModule(INP3);
-
-    Module* INP4 = new DigitalPin(*ptrInputs, 0, "PD_11", 3, true, NONE);
-    servoThread->registerModule(INP4);
-
-    Module* INP5 = new DigitalPin(*ptrInputs, 0, "PD_14", 4, true, NONE);
-    servoThread->registerModule(INP5);
-
-    Module* INP6 = new DigitalPin(*ptrInputs, 0, "PD_15", 5, true, NONE);
-    servoThread->registerModule(INP6);
-
-    Module* INP7 = new DigitalPin(*ptrInputs, 0, "PC_6", 6, true, NONE);
-    servoThread->registerModule(INP7);
-
-    Module* INP8 = new DigitalPin(*ptrInputs, 0, "PC_7", 7, true, NONE);
-    servoThread->registerModule(INP8);
-
-    Module* INP9 = new DigitalPin(*ptrInputs, 0, "PC_8", 8, true, NONE);
-    servoThread->registerModule(INP9);
-
-    Module* INP10 = new DigitalPin(*ptrInputs, 0, "PC_9", 9, true, NONE);
-    servoThread->registerModule(INP10);
-
-    Module* INP11 = new DigitalPin(*ptrInputs, 0, "PA_11", 10, true, NONE);
-    servoThread->registerModule(INP11);
-
-    Module* INP12 = new DigitalPin(*ptrInputs, 0, "PA_12", 11, true, NONE);
-    servoThread->registerModule(INP12);
-
-    Module* SRO = new DigitalPin(*ptrInputs, 0, "PB_14", 12, true, NONE);
-    servoThread->registerModule(SRO);
-
-    Module* SJR = new DigitalPin(*ptrInputs, 0, "PB_15", 13, true, NONE);
-    servoThread->registerModule(SJR);
-
-    Module* x100 = new DigitalPin(*ptrInputs, 0, "PA_15", 14, true, NONE);
-    servoThread->registerModule(x100);
-
-    Module* x10 = new DigitalPin(*ptrInputs, 0, "PC_10", 15, true, NONE);
-    servoThread->registerModule(x10);
-
-    Module* x1 = new DigitalPin(*ptrInputs, 0, "PC_11", 16, true, NONE);
-    servoThread->registerModule(x1);
-
-    Module* ESTOP = new DigitalPin(*ptrInputs, 0, "PC_12", 17, true, NONE);
-    servoThread->registerModule(ESTOP);
-
-    Module* Xin = new DigitalPin(*ptrInputs, 0, "PD_7", 18, true, NONE);
-    servoThread->registerModule(Xin);
-
-    Module* Yin = new DigitalPin(*ptrInputs, 0, "PD_4", 19, true, NONE);
-    servoThread->registerModule(Yin);
-
-    Module* Zin = new DigitalPin(*ptrInputs, 0, "PD_3", 20, true, NONE);
-    servoThread->registerModule(Zin);
-
-    Module* Ain = new DigitalPin(*ptrInputs, 0, "PD_2", 21, true, NONE);
-    servoThread->registerModule(Ain);
-
-    Module* Bin = new DigitalPin(*ptrInputs, 0, "PD_1", 22, true, NONE);
-    servoThread->registerModule(Bin);
-
-    Module* Cin = new DigitalPin(*ptrInputs, 0, "PD_0", 23, true, NONE);
-    servoThread->registerModule(Cin);
-
-    Module* WHA = new DigitalPin(*ptrInputs, 0, "PB_7", 24, false, NONE);
-    servoThread->registerModule(WHA);
-
-    Module* WHB = new DigitalPin(*ptrInputs, 0, "PB_6", 25, false, NONE);
-    servoThread->registerModule(WHB);
-
-    Module* INDEX = new DigitalPin(*ptrInputs, 0, "PC_15", 25, false, NONE);
-    servoThread->registerModule(INDEX);
-
-
-    // OUTPUTS
-    Module* OUT1 = new DigitalPin(*ptrOutputs, 1, "PC_3", 0, false, NONE);
-    servoThread->registerModule(OUT1);
-
-    Module* OUT2 = new DigitalPin(*ptrOutputs, 1, "PC_2", 1, false, NONE);
-    servoThread->registerModule(OUT2);
-
-    Module* OUT3 = new DigitalPin(*ptrOutputs, 1, "PB_8", 3, false, NONE);
-    servoThread->registerModule(OUT3);
-
-    Module* OUT4 = new DigitalPin(*ptrOutputs, 1, "PB_9", 4, false, NONE);
-    servoThread->registerModule(OUT4);
-
-    Module* OUT5 = new DigitalPin(*ptrOutputs, 1, "PE_0", 5, false, NONE);
-    servoThread->registerModule(OUT5);
-
-    Module* OUT6 = new DigitalPin(*ptrOutputs, 1, "PE_1", 6, false, NONE);
-    servoThread->registerModule(OUT6);
-
-    Module* OUT7 = new DigitalPin(*ptrOutputs, 1, "PE_2", 7, false, NONE);
-    servoThread->registerModule(OUT7);
-
-    Module* OUT8 = new DigitalPin(*ptrOutputs, 1, "PE_3", 8, false, NONE);
-    servoThread->registerModule(OUT8);
-
-    Module* OUT9 = new DigitalPin(*ptrOutputs, 1, "PC_13", 9, false, NONE);
-    servoThread->registerModule(OUT9);
-
-    Module* OUT10 = new DigitalPin(*ptrOutputs, 1, "PC_14", 10, false, NONE);
-    servoThread->registerModule(OUT10);
-
-    // SPINDLE
-    ptrSetPoint[0] = &rxData.setPoint[0];
-    Module* spindle = new SpindlePWM(*ptrSetPoint[0]);
-    servoThread->registerModule(spindle);
-
-    //Module* spindle = new SoftPWM(*ptrSetPoint[0], "PA_0");
-    //baseThread->registerModule(spindle);
-
-
-    // MANUAL PULSE GENERATOR
-	MPG = new NVMPG(*ptrMpgData, *ptrNVMPGInputs);
-	servoThread->registerModule(MPG);
 }
 
 void debugThreadHigh()
@@ -438,6 +440,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_LWIP_Init();
   MX_USART2_UART_Init();
+  MX_IWDG_Init();
 
   /* USER CODE BEGIN 2 */
   enum State currentState;
@@ -446,7 +449,7 @@ int main(void)
   currentState = ST_SETUP;
   prevState = ST_RESET;
 
-  printf("Remora-NVEM starting\n");
+  printf("\nRemora-NVEM starting\n");
 
   /* USER CODE END 2 */
 
@@ -466,11 +469,15 @@ int main(void)
 	              }
 	              prevState = currentState;
 
+	              jsonFromFlash(strJson);
+	              deserialiseJSON();
+	              configThreads();
 	              createThreads();
 	              //debugThreadHigh();
 	              loadModules();
 	              //debugThreadLow();
 	              udpServer_init();
+	              IAP_tftpd_init();
 
 	              currentState = ST_START;
 	              break;
@@ -575,9 +582,24 @@ int main(void)
 	              break;
 	  }
 
+	  // refresh the watchdog
+	  HAL_IWDG_Refresh(&hiwdg);
+
 	  // do Ethernet tasks
 	  ethernetif_input(&gnetif);
 	  sys_check_timeouts();
+
+	  if (newJson)
+	  {
+		  printf("\n\nChecking new configuration file\n");
+		  if (checkJson() > 0)
+		  {
+			  printf("Moving new config file to Flash storage\n");
+			  moveJson();
+			  // force a watchdog reset to force load of new configuration
+			  while(1){}
+		  }
+	  }
   }
   /* USER CODE END 3 */
 }
@@ -657,9 +679,34 @@ static void MX_USART2_UART_Init(void)
 }
 
 
-/* USER CODE BEGIN 4 */
+/**
+  * @brief IWDG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_IWDG_Init(void)
+{
 
-/* USER CODE END 4 */
+  /* USER CODE BEGIN IWDG_Init 0 */
+
+  /* USER CODE END IWDG_Init 0 */
+
+  /* USER CODE BEGIN IWDG_Init 1 */
+
+  /* USER CODE END IWDG_Init 1 */
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_64;
+  hiwdg.Init.Reload = 999;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN IWDG_Init 2 */
+
+  /* USER CODE END IWDG_Init 2 */
+
+}
+
 
 /**
   * @brief  This function is executed in case of error occurrence.
