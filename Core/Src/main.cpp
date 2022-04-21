@@ -206,8 +206,8 @@ int8_t checkJson()
 	for (uint32_t i = 0; i < meta->length; i++) CRC->DR = __RBIT(*(json+i));
 	crc32 = __RBIT(CRC->DR) ^ 0xFFFFFFFF;
 
-	printf("Length = %d\n", meta->length);
-	printf("JSON length = %d\n", meta->jsonLength);
+	printf("Length (words) = %d\n", meta->length);
+	printf("JSON length (bytes) = %d\n", meta->jsonLength);
 	printf("crc32 = %x\n", crc32);
 
 	// Disable CRC
@@ -440,7 +440,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_LWIP_Init();
   MX_USART2_UART_Init();
-  MX_IWDG_Init();
 
   /* USER CODE BEGIN 2 */
   enum State currentState;
@@ -573,17 +572,13 @@ int main(void)
 	              break;
 
 	          case ST_WDRESET:
-	              // do a watch dog reset
-	              printf("\n## Entering WDRESET state\n");
-
-	              // force a watchdog reset by looping here
-	              while(1){}
-
+	        	  // force a reset
+	        	  HAL_NVIC_SystemReset();
 	              break;
 	  }
 
 	  // refresh the watchdog
-	  HAL_IWDG_Refresh(&hiwdg);
+	  //HAL_IWDG_Refresh(&hiwdg);
 
 	  // do Ethernet tasks
 	  ethernetif_input(&gnetif);
@@ -596,8 +591,9 @@ int main(void)
 		  {
 			  printf("Moving new config file to Flash storage\n");
 			  moveJson();
-			  // force a watchdog reset to force load of new configuration
-			  while(1){}
+
+			  // force a reset
+			  HAL_NVIC_SystemReset();
 		  }
 	  }
   }
@@ -678,34 +674,6 @@ static void MX_USART2_UART_Init(void)
 
 }
 
-
-/**
-  * @brief IWDG Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_IWDG_Init(void)
-{
-
-  /* USER CODE BEGIN IWDG_Init 0 */
-
-  /* USER CODE END IWDG_Init 0 */
-
-  /* USER CODE BEGIN IWDG_Init 1 */
-
-  /* USER CODE END IWDG_Init 1 */
-  hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_64;
-  hiwdg.Init.Reload = 999;
-  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN IWDG_Init 2 */
-
-  /* USER CODE END IWDG_Init 2 */
-
-}
 
 
 /**
