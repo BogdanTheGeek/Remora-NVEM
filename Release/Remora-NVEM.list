@@ -3731,7 +3731,7 @@ Disassembly of section .text:
  80027e8:	4856      	ldr	r0, [pc, #344]	; (8002944 <main+0x194>)
  80027ea:	4a57      	ldr	r2, [pc, #348]	; (8002948 <main+0x198>)
  80027ec:	e9c0 2300 	strd	r2, r3, [r0]
- 80027f0:	f240 13f3 	movw	r3, #499	; 0x1f3
+ 80027f0:	f240 33e7 	movw	r3, #999	; 0x3e7
  80027f4:	6083      	str	r3, [r0, #8]
  80027f6:	f002 fd24 	bl	8005242 <HAL_IWDG_Init>
  80027fa:	4605      	mov	r5, r0
