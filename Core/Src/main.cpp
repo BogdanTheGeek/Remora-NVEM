@@ -91,7 +91,6 @@ IWDG_HandleTypeDef hiwdg;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_USART2_UART_Init(void);
-static void MX_IWDG_Init(void);
 
 void udpServer_init(void);
 void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
