@@ -770,11 +770,18 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
 		txlen = sizeof(txData.header);
 		comms->dataReceived();
 
+		// ensure an atomic access to the rxBuffer
+		// disable thread interrupts
+		__disable_irq();
+
 		// then move the data
 		for (int i = 0; i < BUFFER_SIZE; i++)
 		{
 			rxData.rxBuffer[i] = rxBuffer.rxBuffer[i];
 		}
+
+		// re-enable thread interrupts
+		__enable_irq();
 	}
 
 
