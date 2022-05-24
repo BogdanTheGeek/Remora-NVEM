@@ -165,6 +165,8 @@ volatile mpgData_t* ptrMpgData = &mpgData;
 
 // Json config file stuff
 
+const char defaultConfig[] = DEFAULT_CONFIG;
+
 // 512 bytes of metadata in front of actual JSON file
 typedef struct
 {
@@ -182,6 +184,8 @@ string strJson;
 DynamicJsonDocument doc(JSON_BUFF_SIZE);
 JsonObject thread;
 JsonObject module;
+
+
 
 int8_t checkJson()
 {
@@ -266,7 +270,18 @@ void jsonFromFlash(std::string json)
 
     if (jsonLength == 0xFFFFFFFF)
     {
-    	printf("Flash storage location is empty - no config file\n\n");
+    	printf("Flash storage location is empty - no config file\n");
+    	printf("Using basic default configuration - 3 step generators only\n");
+
+    	jsonLength = sizeof(defaultConfig);
+
+    	json.resize(jsonLength);
+
+		for (i = 0; i < jsonLength; i++)
+		{
+			c = defaultConfig[i];
+			strJson.push_back(c);
+		}
     }
     else
     {
@@ -576,9 +591,6 @@ int main(void)
 	              break;
 	  }
 
-	  // refresh the watchdog
-	  //HAL_IWDG_Refresh(&hiwdg);
-
 	  // do Ethernet tasks
 	  ethernetif_input(&gnetif);
 	  sys_check_timeouts();
@@ -591,7 +603,7 @@ int main(void)
 			  printf("Moving new config file to Flash storage\n");
 			  moveJson();
 
-			  // force a reset
+			  // force a reset to load new JSON configuration
 			  HAL_NVIC_SystemReset();
 		  }
 	  }
