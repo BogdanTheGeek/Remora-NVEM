@@ -2,6 +2,26 @@
 
 // Module for NVMEM spindle RPM on pin PA_0
 
+/***********************************************************************
+                MODULE CONFIGURATION AND CREATION FROM JSON
+************************************************************************/
+
+void createSpindlePWM()
+{
+    const char* comment = module["Comment"];
+    printf("\n%s\n",comment);
+
+    int sp = module["SP[i]"];
+
+    ptrSetPoint[sp] = &rxData.setPoint[sp];
+    Module* spindle = new SpindlePWM(*ptrSetPoint[sp]);
+    servoThread->registerModule(spindle);
+}
+
+
+/***********************************************************************
+                METHOD DEFINITIONS
+************************************************************************/
 
 SpindlePWM::SpindlePWM(volatile float &ptrPwmPulseWidth) :
     ptrPwmPulseWidth(&ptrPwmPulseWidth)
