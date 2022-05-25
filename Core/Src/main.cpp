@@ -166,6 +166,7 @@ volatile mpgData_t* ptrMpgData = &mpgData;
 // Json config file stuff
 
 const char defaultConfig[] = DEFAULT_CONFIG;
+//const char defaultConfig[] = FULL_CONFIG;
 
 // 512 bytes of metadata in front of actual JSON file
 typedef struct
