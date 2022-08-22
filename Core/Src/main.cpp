@@ -58,8 +58,8 @@
 #include "modules/blink/blink.h"
 #include "modules/comms/RemoraComms.h"
 #include "modules/debug/debug.h"
-#include "modules/pwm/spindlePWM.h"
-#include "modules/pwm/softPWM.h"
+#include "modules/pwm/spindlePwm.h"
+#include "modules/pwm/softPwm.h"
 #include "modules/stepgen/stepgen.h"
 #include "modules/digitalPin/digitalPin.h"
 #include "modules/nvmpg/nvmpg.h"
@@ -113,7 +113,7 @@ extern "C" {
 }
 
 // network interface
-struct netif gnetif;
+extern struct netif gnetif;
 
 // state machine
 enum State {
@@ -210,9 +210,9 @@ int8_t checkJson()
 	for (uint32_t i = 0; i < meta->length; i++) CRC->DR = __RBIT(*(json+i));
 	crc32 = __RBIT(CRC->DR) ^ 0xFFFFFFFF;
 
-	printf("Length (words) = %d\n", meta->length);
-	printf("JSON length (bytes) = %d\n", meta->jsonLength);
-	printf("crc32 = %x\n", crc32);
+	printf("Length (words) = %ld\n", meta->length);
+	printf("JSON length (bytes) = %ld\n", meta->jsonLength);
+	printf("crc32 = %lx\n", crc32);
 
 	// Disable CRC
 	RCC->AHB1ENR &= ~RCC_AHB1ENR_CRCEN;
@@ -348,12 +348,12 @@ void configThreads()
         if (!strcmp(configor,"Base"))
         {
             base_freq = freq;
-            printf("Setting BASE thread frequency to %d\n", base_freq);
+            printf("Setting BASE thread frequency to %ld\n", base_freq);
         }
         else if (!strcmp(configor,"Servo"))
         {
             servo_freq = freq;
-            printf("Setting SERVO thread frequency to %d\n", servo_freq);
+            printf("Setting SERVO thread frequency to %ld\n", servo_freq);
         }
     }
 }

@@ -1,9 +1,0 @@
-pin.cpp:123:6:void Pin::initPin()	8	static
-pin.cpp:63:6:void Pin::configPin()	56	static
-pin.cpp:7:1:Pin::Pin(std::string, int)	16	static
-pin.cpp:26:1:Pin::Pin(std::string, int, int)	16	static
-pin.cpp:136:6:void Pin::setAsOutput()	0	static
-pin.cpp:144:6:void Pin::setAsInput()	0	static
-pin.cpp:152:6:void Pin::pull_none()	0	static
-pin.cpp:159:6:void Pin::pull_up()	0	static
-pin.cpp:166:6:void Pin::pull_down()	0	static

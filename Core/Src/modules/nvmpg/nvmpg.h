@@ -9,7 +9,7 @@
 #include "configuration.h"
 #include "remora.h"
 #include "../module.h"
-#include "../moduleinterrupt.h"
+#include "../moduleInterrupt.h"
 
 #include "extern.h"
 
